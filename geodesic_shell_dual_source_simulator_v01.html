@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geodesic Shell Simulator — Dual Source v01.00</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Exo+2:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04070f;--bg2:#080d1a;--bg3:#0d1525;--bg4:#111c30;
+  --border:rgba(3,124,130,0.18);--border2:rgba(3,124,130,0.35);--border3:rgba(194,25,84,0.3);
+  --text:#d4e8f0;--text2:#7eafc0;--text3:#3d6070;
+  --accent:#037c82;--accent2:#0aa8b0;
+  --magenta:#c21954;--magenta2:#e8206a;
+  --s2col:#e8a020;--s2col2:#f0c060;
+  --warn:#ba6017;--success:#1a8f6e;
+  --radius:8px;--radius-sm:5px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;overflow-x:hidden}
+.app{display:grid;grid-template-columns:1fr 460px;gap:0;height:100vh;overflow:hidden}
+.sidebar{background:linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%);border-left:1px solid var(--border2);padding:18px 16px 24px;overflow-y:auto;height:100vh;position:sticky;top:0;}
+.logo{font-family:'Orbitron',sans-serif;font-weight:700;font-size:12px;letter-spacing:.22em;color:var(--accent2);text-transform:uppercase;margin-bottom:2px}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:.05em;margin-bottom:16px}
+.sec-head{font-family:'Orbitron',sans-serif;font-weight:500;font-size:8.5px;color:var(--accent);text-transform:uppercase;letter-spacing:.16em;margin:14px 0 5px;padding-top:12px;border-top:1px solid var(--border);}
+.sec-head:first-of-type{border-top:none;padding-top:0;margin-top:0}
+.sec-head.magenta{color:var(--magenta)}
+.sec-head.purple{color:#9b5fbf}
+.sec-head.s2{color:var(--s2col)}
+.hint{font-size:10.5px;color:var(--text2);line-height:1.6;padding:6px 9px;border-left:2px solid var(--border2);margin:4px 0 7px;background:rgba(3,124,130,0.04);border-radius:0 4px 4px 0}
+.hint b{color:var(--text);font-weight:500}
+.hint.s2{border-left-color:rgba(232,160,32,0.5);background:rgba(232,160,32,0.03)}
+.row{display:flex;align-items:center;gap:6px;margin:3px 0}
+.row label{min-width:152px;flex-shrink:0;font-size:11px;color:var(--text2)}
+.row select{flex:1;font-size:11px;font-family:'Exo 2',sans-serif;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:4px 6px;cursor:pointer}
+.row select:focus{outline:none;border-color:var(--accent)}
+.stepper{display:flex;align-items:center;gap:0;flex:1}
+.stepper button{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:13px;line-height:1;padding:2px 7px;cursor:pointer;transition:all .12s;user-select:none;}
+.stepper button:first-child{border-radius:var(--radius-sm) 0 0 var(--radius-sm);border-right:none}
+.stepper button:last-child{border-radius:0 var(--radius-sm) var(--radius-sm) 0;border-left:none}
+.stepper button:hover{background:var(--bg4);color:var(--accent2)}
+.stepper.s2 button:hover{color:var(--s2col2)}
+.stepper input[type=number]{flex:1;min-width:0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:var(--text);background:var(--bg4);border:1px solid var(--border);border-left:none;border-right:none;padding:3px 4px;outline:none;-moz-appearance:textfield;}
+.stepper input[type=number]::-webkit-inner-spin-button,.stepper input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+.stepper input[type=number]:focus{border-color:var(--accent);background:var(--bg3)}
+.btn-row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.btn{flex:1;font-size:11px;padding:7px 8px;font-family:'Exo 2',sans-serif;background:transparent;border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg3);border-color:var(--border2)}
+.btn.primary{border-color:var(--accent2);color:var(--accent2)}
+.btn.primary:hover{background:rgba(3,124,130,0.12)}
+.btn.magenta{border-color:var(--magenta);color:var(--magenta)}
+.btn.magenta:hover{background:rgba(194,25,84,0.1)}
+.btn.s2btn{border-color:var(--s2col);color:var(--s2col)}
+.btn.s2btn:hover{background:rgba(232,160,32,0.1)}
+#info{font-size:10.5px;color:var(--magenta2);margin-top:6px;min-height:14px}
+.main{padding:12px 14px 20px;overflow-y:auto;height:100vh}
+.main-title{font-family:'Orbitron',sans-serif;font-weight:700;font-size:14px;letter-spacing:.16em;color:var(--text);text-transform:uppercase;margin-bottom:1px}
+.main-sub{font-size:11px;color:var(--text3);letter-spacing:.04em;margin-bottom:16px}
+canvas{display:block;border-radius:var(--radius);border:1px solid var(--border)}
+.canvas-wrap{position:relative}
+.canvas-label{font-size:10px;color:var(--text3);margin:4px 0 12px}
+.section-divider{border:none;border-top:1px solid var(--border);margin:10px 0 8px;}
+.leg-item{display:flex;align-items:center;gap:7px;margin:2px 0}
+.leg-dot{width:14px;height:3px;border-radius:2px;flex-shrink:0}
+.leg-text{font-size:10.5px;color:var(--text2)}
+#econs{font-size:10.5px;margin-top:3px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.tbl-head{font-family:'Orbitron',sans-serif;font-weight:500;font-size:9px;color:var(--text);letter-spacing:.12em;text-transform:uppercase;margin:16px 0 4px}
+.tbl-hint{font-size:10.5px;color:var(--text2);line-height:1.6;padding:5px 9px;border-left:2px solid var(--border2);margin-bottom:7px;background:rgba(3,124,130,0.04);border-radius:0 4px 4px 0}
+.tbl-hint b{color:var(--text);font-weight:500}
+.dtbl{width:100%;border-collapse:collapse;font-size:10.5px}
+.dtbl th{text-align:left;padding:5px 7px;background:var(--bg2);color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);font-family:'Orbitron',sans-serif;font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.dtbl td{padding:5px 7px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;font-family:'JetBrains Mono',monospace;font-size:10.5px;white-space:nowrap}
+.dtbl td:first-child,.dtbl td:last-child{font-family:'Exo 2',sans-serif;font-size:11px}
+.dtbl tr:last-child td{border-bottom:none}
+.dtbl tr:hover td{background:rgba(3,124,130,0.06)}
+.track-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+.live-head{font-family:'Orbitron',sans-serif;font-weight:500;font-size:9px;color:var(--text);letter-spacing:.12em;text-transform:uppercase;margin:16px 0 4px}
+.live-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:11px;line-height:2.0;color:var(--text2)}
+.live-box b{color:var(--text);font-weight:500;font-family:'JetBrains Mono',monospace;font-size:10.5px}
+.action-row{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap}
+.action-btn{font-size:11px;padding:7px 12px;font-family:'Exo 2',sans-serif;background:transparent;border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;white-space:nowrap}
+.action-btn:hover{background:var(--bg3);border-color:var(--border2)}
+.action-btn.accent{border-color:var(--accent2);color:var(--accent2)}
+.action-btn.accent:hover{background:rgba(3,124,130,0.1)}
+.action-btn.mag{border-color:var(--magenta);color:var(--magenta)}
+.action-btn.mag:hover{background:rgba(194,25,84,0.08)}
+.tag-ok{color:#1aaf82}
+.tag-err{color:var(--magenta2)}
+/* Source 2 toggle panel */
+.s2-panel{background:rgba(232,160,32,0.04);border:1px solid rgba(232,160,32,0.18);border-radius:var(--radius-sm);padding:8px 10px;margin:6px 0 4px}
+.sep-label{font-family:'Orbitron',sans-serif;font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin:10px 0 3px;padding-top:8px;border-top:1px solid var(--border)}
+/* Waveform meeting indicator */
+.meet-box{background:var(--bg2);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);padding:7px 10px;font-size:10.5px;color:var(--text2);margin-top:6px;font-family:'JetBrains Mono',monospace}
+/* circ overlay */
+#circ-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;background:rgba(4,7,15,0.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+#circ-overlay.show{display:flex}
+.circ-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:22px 24px;min-width:300px;max-width:380px;}
+.circ-box h3{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:.18em;color:var(--accent2);text-transform:uppercase;margin-bottom:12px}
+.circ-box p{font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:10px}
+.circ-box .circ-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 10px;margin:6px 0 12px;line-height:1.9}
+.circ-btns{display:flex;gap:8px;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══════════════  MAIN CONTENT  ═══════════════ -->
+<div class="main">
+  <div class="main-title">Geodesic Shell Simulator — Dual Source</div>
+  <div class="main-sub">
+    Hanka Partelová &amp; Natália Salomé Móller · v01.00 dual-source (2D only)
+    &nbsp;<a id="share-link" href="#" onclick="shareURL(event)" style="color:var(--accent2);font-size:10px;text-decoration:none;border:1px solid var(--border2);padding:1px 6px;border-radius:3px;margin-left:6px">⬡ share config</a>
+  </div>
+
+  <!-- 2D Canvas -->
+  <div class="canvas-wrap">
+    <canvas id="cv" width="560" height="380" style="width:100%"></canvas>
+  </div>
+  <div class="canvas-label">
+    Equatorial plane (r, φ) &nbsp;·&nbsp;
+    <span style="color:var(--magenta)">●</span> r_s &nbsp;·&nbsp;
+    <span style="color:var(--accent)">○</span> Shell R &nbsp;·&nbsp;
+    <span style="color:var(--warn);opacity:.7">- -</span> ISCO (3r_s) &nbsp;·&nbsp;
+    <span style="color:#9b5fbf">⚬</span> ph. sphere (1.5r_s) &nbsp;·&nbsp;
+    <span style="color:var(--accent2)">●</span> Src 1 &nbsp;·&nbsp;
+    <span style="color:var(--s2col)">●</span> Src 2
+    &nbsp;&nbsp;<span id="ptick-note" style="color:var(--text3);font-size:9px"></span>
+  </div>
+
+  <!-- Veff Canvas -->
+  <canvas id="cv2" width="560" height="95" style="width:100%"></canvas>
+  <div class="canvas-label">
+    V<sub>eff</sub>(r) &nbsp;·&nbsp; dashed = E²/2 level &nbsp;·&nbsp;
+    <span style="color:var(--accent2);font-size:9px">●</span> Src 1 particle pos &nbsp;·&nbsp;
+    <span style="color:var(--s2col);font-size:9px">●</span> Src 2 particle pos (animation)
+  </div>
+
+  <div id="leg" style="margin-top:3px"></div>
+  <div id="econs"></div>
+
+  <!-- Meeting-point analysis -->
+  <div class="meet-box" id="meetbox">—</div>
+
+  <hr class="section-divider">
+
+  <!-- TABLE -->
+  <div class="tbl-head">Trajectory Summary</div>
+  <div class="tbl-hint">
+    <b>α</b> = total bending angle · <b>r_min</b> = periapsis · <b>Δt/Δτ</b> = gravitational time dilation · <b>Src</b> = which source emitted this track
+  </div>
+  <div style="overflow-x:auto">
+    <table class="dtbl">
+      <thead><tr>
+        <th>Src</th><th>Track</th><th>L / b</th><th>r_min</th><th>r_max</th>
+        <th>Bend α</th><th>Δt coord</th><th>Δτ proper</th><th>Δt/Δτ</th><th>v_esc</th><th>Result</th>
+      </tr></thead>
+      <tbody id="tblbody"></tbody>
+    </table>
+  </div>
+
+  <div class="live-head">Live Physical Constants</div>
+  <div class="live-box" id="livebox">—</div>
+
+  <div class="action-row">
+    <button class="action-btn accent" onclick="exportCSV()">↓ CSV</button>
+    <button class="action-btn mag" onclick="exportJSON()">↓ JSON</button>
+    <button class="action-btn" onclick="showHelp('td')">Time dilation?</button>
+    <button class="action-btn" onclick="showHelp('veff')">V_eff guide</button>
+    <button class="action-btn" onclick="showHelp('s2')">Dual-source physics</button>
+  </div>
+</div><!-- /.main -->
+
+<!-- ═══════════════  SIDEBAR  ═══════════════ -->
+<div class="sidebar">
+  <div class="logo">Geodesic Shell — Dual</div>
+  <div class="logo-sub">Schwarzschild spacetime · two photon sources</div>
+
+  <!-- SPACETIME GEOMETRY -->
+  <div class="sec-head">Spacetime Geometry</div>
+  <div class="hint">
+    <b>r_s = 2GM/c²</b> — Schwarzschild radius. Shell at <b>R &gt; r_s</b> separates outer Schwarzschild from inner spacetime (flat Minkowski or uniform mass). Both sources orbit outside.
+  </div>
+  <div class="row"><label>r_s — Schwarzschild radius</label><div class="stepper" id="s-rs"></div></div>
+  <div class="row"><label>R — shell radius (R > r_s)</label><div class="stepper" id="s-rsh"></div></div>
+  <div class="row"><label>M_shell / M</label><div class="stepper" id="s-mshell"></div></div>
+  <div class="row"><label>Interior geometry</label>
+    <select id="interior" onchange="updateLive()">
+      <option value="flat">Empty (Minkowski)</option>
+      <option value="uniform">Uniform mass density</option>
+    </select>
+  </div>
+  <div class="row"><label>M_in / M — interior mass fraction</label><div class="stepper" id="s-mfrac"></div></div>
+
+  <!-- SOURCE 1 — TIMELIKE -->
+  <div class="sec-head magenta">Source 1 — Massive particle (timelike)</div>
+  <div class="hint">E ≥ 1 = unbound. L = angular momentum. ISCO = 3r_s. Use ⊙ Snap for circular orbit.</div>
+  <div class="row"><label>E₁ — energy / mc²</label><div class="stepper" id="s-E"></div></div>
+  <div class="row"><label>L₁ — angular momentum</label><div class="stepper" id="s-L"></div></div>
+  <div class="row"><label>r₀₁ — initial r</label><div class="stepper" id="s-r0"></div></div>
+  <div class="row"><label>φ₀₁ — initial angle [°]</label><div class="stepper" id="s-phi0"></div></div>
+  <div class="row"><label>ṙ₁ direction</label>
+    <select id="rsign">
+      <option value="-1">Inward</option>
+      <option value="1">Outward</option>
+      <option value="0">Tangential (ṙ=0)</option>
+    </select>
+  </div>
+  <div class="btn-row">
+    <button class="btn" style="border-color:#9b5fbf;color:#9b5fbf" onclick="snapCircular(1)">⊙ Snap Src 1</button>
+  </div>
+
+  <!-- SOURCE 1 — PHOTON -->
+  <div class="sec-head" style="color:#9b5fbf">Source 1 — Photon bundle (null geodesic)</div>
+  <div class="hint">
+    <b>b_crit = (3√3/2)·r_s</b>. Photons b &lt; b_crit are captured. Bundle fires N photons around b±Δb.
+  </div>
+  <div class="row"><label>b₁ — impact parameter</label><div class="stepper" id="s-b"></div></div>
+  <div class="row"><label>ṙ₁ photon direction</label>
+    <select id="nsign">
+      <option value="-1">Inward</option>
+      <option value="1">Outward</option>
+      <option value="0">Tangential</option>
+    </select>
+  </div>
+  <div class="row"><label>Show single photon Src 1</label>
+    <select id="shownull"><option value="1">Yes</option><option value="0">No</option></select>
+  </div>
+  <div class="row"><label>Bundle N (Src 1)</label><div class="stepper" id="s-nphot"></div></div>
+  <div class="row"><label>Bundle Δb (Src 1)</label><div class="stepper" id="s-dbphot"></div></div>
+
+  <!-- ══ SOURCE 2 ══ -->
+  <div class="sec-head s2">Source 2 — Enable / configure</div>
+  <div class="hint s2">
+    <b>Second photon source</b> placed at (r₀₂, φ₀₂) in the same equatorial plane. Both sources are fired simultaneously at τ=0. The separation Δφ or Δr between sources lets you study <b>wavefront meeting loci</b>, caustic offsets, and differential Shapiro delay.
+  </div>
+  <div class="row"><label>Enable Source 2</label>
+    <select id="s2enable" onchange="toggleS2();updateLive()">
+      <option value="1">Yes — show Source 2</option>
+      <option value="0">No</option>
+    </select>
+  </div>
+
+  <div id="s2panel" class="s2-panel">
+    <!-- S2 timelike -->
+    <div class="sep-label">Source 2 — Massive particle</div>
+    <div class="row"><label>E₂ — energy / mc²</label><div class="stepper" id="s-E2"></div></div>
+    <div class="row"><label>L₂ — angular momentum</label><div class="stepper" id="s-L2"></div></div>
+    <div class="row"><label>r₀₂ — initial r</label><div class="stepper" id="s-r02"></div></div>
+    <div class="row"><label>φ₀₂ — initial angle [°]</label><div class="stepper" id="s-phi02"></div></div>
+    <div class="row"><label>ṙ₂ direction</label>
+      <select id="rsign2">
+        <option value="-1">Inward</option>
+        <option value="1">Outward</option>
+        <option value="0">Tangential (ṙ=0)</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn s2btn" onclick="snapCircular(2)">⊙ Snap Src 2</button>
+    </div>
+
+    <!-- S2 photon -->
+    <div class="sep-label">Source 2 — Photon bundle</div>
+    <div class="row"><label>b₂ — impact parameter</label><div class="stepper" id="s-b2"></div></div>
+    <div class="row"><label>ṙ₂ photon direction</label>
+      <select id="nsign2">
+        <option value="-1">Inward</option>
+        <option value="1">Outward</option>
+        <option value="0">Tangential</option>
+      </select>
+    </div>
+    <div class="row"><label>Show single photon Src 2</label>
+      <select id="shownull2"><option value="1">Yes</option><option value="0">No</option></select>
+    </div>
+    <div class="row"><label>Bundle N (Src 2)</label><div class="stepper" id="s-nphot2"></div></div>
+    <div class="row"><label>Bundle Δb (Src 2)</label><div class="stepper" id="s-dbphot2"></div></div>
+
+    <!-- Wavefront meeting options -->
+    <div class="sep-label">Wavefront analysis</div>
+    <div class="hint s2" style="font-size:10px">
+      <b>Meeting locus:</b> highlights where Src1 wavefront and Src2 wavefront occupy the same radial distance at the same affine parameter step — the set of <b>encounter points</b> between the two pulse fronts.
+    </div>
+    <div class="row"><label>Show meeting locus</label>
+      <select id="showmeet"><option value="1">Yes</option><option value="0">No</option></select>
+    </div>
+    <div class="row"><label>Meeting locus color</label>
+      <select id="meetcol">
+        <option value="#ffffff">White</option>
+        <option value="#00ffcc">Cyan</option>
+        <option value="#ffaa00">Amber</option>
+        <option value="#ff44aa">Pink</option>
+      </select>
+    </div>
+  </div><!-- /#s2panel -->
+
+  <!-- MULTI-TRACK -->
+  <div class="sec-head">Multi-Track L series (Src 1)</div>
+  <div class="hint">Up to 5 timelike tracks for Src 1, stepping L by ΔL. Src 2 always uses single L₂.</div>
+  <div class="row"><label>N tracks (Src 1)</label><div class="stepper" id="s-ntracks"></div></div>
+  <div class="row"><label>ΔL (Src 1)</label><div class="stepper" id="s-dL"></div></div>
+
+  <!-- DISPLAY -->
+  <div class="sec-head">Display Options</div>
+  <div class="row"><label>Proper-time ticks</label>
+    <select id="showticks">
+      <option value="1">Yes — show Δτ ticks</option>
+      <option value="0">No</option>
+    </select>
+  </div>
+  <div class="row"><label>Tick interval Δτ</label><div class="stepper" id="s-tickdt"></div></div>
+
+  <!-- INTEGRATION -->
+  <div class="sec-head">Numerical Integration (RK4)</div>
+  <div class="hint"><b>RK4</b> — 4th-order Runge-Kutta. Error ∝ dτ⁴. ΔE/E &lt; 10⁻⁵ is good.</div>
+  <div class="row"><label>Step dτ</label><div class="stepper" id="s-dt"></div></div>
+  <div class="row"><label>Max steps</label><div class="stepper" id="s-nsteps"></div></div>
+
+  <div class="btn-row">
+    <button class="btn primary" onclick="simulate()">▶ Run Simulation</button>
+    <button class="btn" id="abtn" onclick="animToggle()">◌ Animate</button>
+  </div>
+  <div id="info"></div>
+</div><!-- /.sidebar -->
+</div><!-- /.app -->
+
+<!-- Circular orbit overlay -->
+<div id="circ-overlay" onclick="if(event.target===this)closeCirc()">
+  <div class="circ-box">
+    <h3>⊙ Circular Orbit Parameters</h3>
+    <p>Required L and E for a circular orbit at r₀ in Schwarzschild spacetime:</p>
+    <div class="circ-val" id="circ-result">—</div>
+    <p id="circ-warn" style="font-size:10.5px;color:var(--magenta2);display:none"></p>
+    <div class="circ-btns">
+      <button class="btn primary" onclick="applyCircular()">Apply</button>
+      <button class="btn" onclick="closeCirc()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// STEPPER FACTORY
+// ══════════════════════════════════════════════════════════════
+const _steppers={};
+function makeStepper(containerId,cfg){
+  const{id,min,max,step,value,decimals=2,cls=''}=cfg;
+  const wrap=document.getElementById(containerId);
+  if(!wrap)return;
+  wrap.innerHTML=`<button type="button" onclick="stepAdj('${id}',-1)">−</button>
+    <input type="number" id="${id}" value="${value}" min="${min}" max="${max}" step="${step}"
+      onchange="clampStepper('${id}',${min},${max},${decimals});updateLive()">
+    <button type="button" onclick="stepAdj('${id}',1)">+</button>`;
+  if(cls)wrap.classList.add(cls);
+  _steppers[id]={min,max,step,decimals};
+}
+function stepAdj(id,dir){
+  const cfg=_steppers[id];if(!cfg)return;
+  const el=document.getElementById(id);
+  let v=parseFloat(el.value)+(dir*cfg.step);
+  v=Math.max(cfg.min,Math.min(cfg.max,parseFloat(v.toFixed(10))));
+  el.value=v.toFixed(cfg.decimals);
+  updateLive();
+}
+function clampStepper(id,mn,mx,dec){
+  const el=document.getElementById(id);
+  let v=parseFloat(el.value);
+  if(isNaN(v))v=mn;
+  v=Math.max(mn,Math.min(mx,v));
+  el.value=v.toFixed(dec);
+}
+function gv(id){return parseFloat(document.getElementById(id).value);}
+function gs(id){return document.getElementById(id).value;}
+function gvSafe(id,def){const el=document.getElementById(id);return el?parseFloat(el.value):def;}
+function gsSafe(id,def){const el=document.getElementById(id);return el?el.value:def;}
+
+function toggleS2(){
+  const on=gs('s2enable')==='1';
+  document.getElementById('s2panel').style.opacity=on?'1':'0.35';
+  document.getElementById('s2panel').style.pointerEvents=on?'':'none';
+}
+
+// URL params
+function urlParam(k,def){const p=new URLSearchParams(location.search);return p.has(k)?parseFloat(p.get(k)):def;}
+function urlParamS(k,def){const p=new URLSearchParams(location.search);return p.has(k)?p.get(k):def;}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  // Geometry
+  makeStepper('s-rs',   {id:'rs',    min:.3,  max:4,     step:.1,   value:urlParam('rs',1.0),    decimals:2});
+  makeStepper('s-rsh',  {id:'rsh',   min:1.5, max:12,    step:.25,  value:urlParam('rsh',4.0),   decimals:2});
+  makeStepper('s-mshell',{id:'mshell',min:0, max:1,      step:.05,  value:urlParam('mshell',0),  decimals:2});
+  makeStepper('s-mfrac',{id:'mfrac', min:0,  max:1,      step:.05,  value:urlParam('mfrac',0),   decimals:2});
+  // Source 1 — timelike
+  makeStepper('s-E',    {id:'E',     min:.92, max:3,     step:.02,  value:urlParam('E',1.0),     decimals:3});
+  makeStepper('s-L',    {id:'L',     min:0,  max:15,     step:.1,   value:urlParam('L',3.46),    decimals:2});
+  makeStepper('s-r0',   {id:'r0',    min:1.5, max:22,    step:.5,   value:urlParam('r0',10),     decimals:1});
+  makeStepper('s-phi0', {id:'phi0',  min:0,  max:355,    step:5,    value:urlParam('phi0',180),  decimals:0});
+  // Source 1 — photon
+  makeStepper('s-b',    {id:'b',     min:.5, max:18,     step:.1,   value:urlParam('b',5.2),     decimals:2});
+  makeStepper('s-nphot',{id:'nphot', min:0,  max:20,     step:1,    value:urlParam('nphot',0),   decimals:0});
+  makeStepper('s-dbphot',{id:'dbphot',min:.05,max:4,     step:.05,  value:urlParam('dbphot',.4), decimals:2});
+  // Source 2 — timelike
+  makeStepper('s-E2',   {id:'E2',    min:.92, max:3,     step:.02,  value:urlParam('E2',1.0),    decimals:3});
+  makeStepper('s-L2',   {id:'L2',    min:0,  max:15,     step:.1,   value:urlParam('L2',3.46),   decimals:2});
+  makeStepper('s-r02',  {id:'r02',   min:1.5, max:22,    step:.5,   value:urlParam('r02',10),    decimals:1});
+  makeStepper('s-phi02',{id:'phi02', min:0,  max:355,    step:5,    value:urlParam('phi02',0),   decimals:0});
+  // Source 2 — photon
+  makeStepper('s-b2',   {id:'b2',    min:.5, max:18,     step:.1,   value:urlParam('b2',5.2),    decimals:2});
+  makeStepper('s-nphot2',{id:'nphot2',min:0, max:20,     step:1,    value:urlParam('nphot2',0),  decimals:0});
+  makeStepper('s-dbphot2',{id:'dbphot2',min:.05,max:4,   step:.05,  value:urlParam('dbphot2',.4),decimals:2});
+  // Multi-track & display
+  makeStepper('s-ntracks',{id:'ntracks',min:1,max:5,     step:1,    value:urlParam('ntracks',1), decimals:0});
+  makeStepper('s-dL',   {id:'dL',    min:.1, max:3,      step:.1,   value:urlParam('dL',1.0),    decimals:2});
+  makeStepper('s-dt',   {id:'dt',    min:.001,max:.05,   step:.001, value:urlParam('dt',.01),    decimals:3});
+  makeStepper('s-nsteps',{id:'nsteps',min:500,max:20000, step:200,  value:urlParam('nsteps',5000),decimals:0});
+  makeStepper('s-tickdt',{id:'tickdt',min:.5, max:20,    step:.5,   value:urlParam('tickdt',5),  decimals:1});
+
+  // Restore selects from URL
+  ['interior','rsign','nsign','shownull','showticks','s2enable','rsign2','nsign2','shownull2','showmeet','meetcol'].forEach(k=>{
+    const v=urlParamS(k,null);
+    if(v){const el=document.getElementById(k);if(el)el.value=v;}
+  });
+
+  toggleS2();
+  updateLive();
+  simulate();
+});
+
+// ══════════════════════════════════════════════════════════════
+// PHYSICS — identical engine to v02.02
+// ══════════════════════════════════════════════════════════════
+function rsEff(r,rs,rsh,mfrac,mshell,it){
+  if(r>=rsh) return rs;
+  if(it==='flat') return 0;
+  return rs*mfrac*Math.pow(r/rsh,3);
+}
+function vtm(r,rs,L,rsh,mfrac,mshell,it){
+  const e=rsEff(r,rs,rsh,mfrac,mshell,it);
+  const f=Math.max(1e-8,1-e/r);
+  return 0.5*f*(1+L*L/(r*r));
+}
+function vnull(r,rs,b,rsh,mfrac,mshell,it){
+  const e=rsEff(r,rs,rsh,mfrac,mshell,it);
+  const f=Math.max(1e-8,1-e/r);
+  return 0.5*b*b*f/(r*r);
+}
+function dvdr(fn,r,...a){
+  const h=Math.max(r*1e-5,1e-7);
+  return (fn(r+h,...a)-fn(r-h,...a))/(2*h);
+}
+function dTM(s,rs,E,L,rsh,mfrac,mshell,it){
+  const[r,,pr]=s;
+  if(r<0.05)return[0,0,0,0];
+  const e=rsEff(r,rs,rsh,mfrac,mshell,it);
+  const fr=Math.max(1e-8,1-e/r);
+  return[pr, L/(r*r), -dvdr(vtm,r,rs,L,rsh,mfrac,mshell,it), E/fr];
+}
+function dNull(s,rs,b,rsh,mfrac,mshell,it){
+  const[r,,pr]=s;
+  if(r<0.05)return[0,0,0,0];
+  const e=rsEff(r,rs,rsh,mfrac,mshell,it);
+  const fr=Math.max(1e-8,1-e/r);
+  return[pr, b/(r*r), -dvdr(vnull,r,rs,b,rsh,mfrac,mshell,it), 1/fr];
+}
+function rk4(s,dt,fn){
+  const k1=fn(s);
+  const s2=s.map((v,i)=>v+.5*dt*k1[i]);
+  const k2=fn(s2);
+  const s3=s.map((v,i)=>v+.5*dt*k2[i]);
+  const k3=fn(s3);
+  const s4=s.map((v,i)=>v+dt*k3[i]);
+  const k4=fn(s4);
+  return s.map((v,i)=>v+dt/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]));
+}
+function integrate(rs,rsh,r0,ph0d,E,L,isNull,sgns,dt,nsteps,mfrac,mshell,it){
+  const phi0=ph0d*Math.PI/180;
+  const V0=isNull?vnull(r0,rs,L,rsh,mfrac,mshell,it):vtm(r0,rs,L,rsh,mfrac,mshell,it);
+  const E2h=isNull?0.5:E*E*0.5;
+  const ke=E2h-V0;
+  const sgn=parseInt(sgns);
+  const pr0=sgn===0?0:sgn*(ke>0?Math.sqrt(2*ke):0.001);
+  let state=[r0,phi0,pr0,0];
+  const pts=[],taus=[],ts=[];
+  let cap=false,esc=false,maxDE=0,rmin=r0,rmax=r0;
+  const fn=isNull?s=>dNull(s,rs,L,rsh,mfrac,mshell,it):s=>dTM(s,rs,E,L,rsh,mfrac,mshell,it);
+  for(let i=0;i<nsteps;i++){
+    const[r,phi,pr,t]=state;
+    const eR=rsEff(r,rs,rsh,mfrac,mshell,it);
+    if(r<=eR*0.55||r<0.08){cap=true;break;}
+    if(r>80){esc=true;break;}
+    pts.push([r*Math.cos(phi),r*Math.sin(phi)]);
+    taus.push(i*dt);
+    ts.push(t);
+    if(r<rmin)rmin=r;
+    if(r>rmax)rmax=r;
+    state=rk4(state,dt,fn);
+    const Vn=isNull?vnull(state[0],rs,L,rsh,mfrac,mshell,it):vtm(state[0],rs,L,rsh,mfrac,mshell,it);
+    const ref=isNull?0.5:E*E*0.5;
+    const de=Math.abs(Vn+0.5*state[2]*state[2]-ref)/Math.max(1e-10,Math.abs(ref));
+    if(de>maxDE)maxDE=de;
+  }
+  const tau_t=taus.length>1?taus[taus.length-1]:0;
+  const t_t=ts.length>1?ts[ts.length-1]-ts[0]:0;
+  let alpha=0;
+  if(pts.length>4){
+    const sm=Math.min(5,Math.floor(pts.length/4)),n=pts.length;
+    const v0=[pts[sm][0]-pts[0][0],pts[sm][1]-pts[0][1]];
+    const v1=[pts[n-1][0]-pts[n-1-sm][0],pts[n-1][1]-pts[n-1-sm][1]];
+    const d=v0[0]*v1[0]+v0[1]*v1[1];
+    const m=Math.sqrt(v0[0]**2+v0[1]**2)*Math.sqrt(v1[0]**2+v1[1]**2);
+    if(m>0)alpha=Math.acos(Math.max(-1,Math.min(1,d/m)))*180/Math.PI;
+  }
+  return{pts,taus,ts,captured:cap,escaped:esc,maxDE,rmin,rmax,alpha,tau_total:tau_t,t_total:t_t};
+}
+
+// ══════════════════════════════════════════════════════════════
+// CANVAS SETUP
+// ══════════════════════════════════════════════════════════════
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const cv2=document.getElementById('cv2'),ctx2=cv2.getContext('2d');
+const W=560,H=380,CX=W/2,CY=H/2;
+const W2=560,H2=95;
+
+// Source 1 colors: teal/blue family
+const COLS=['#0fc9d4','#037c82','#0a5fa8','#3b9ef5','#8ed8e0'];
+const CNULL='#c21954';
+const CNULL_BUNDLE=['#c21954','#e03070','#9b144b','#ff6090','#7a0f38','#f0a0c0','#d04070','#e8507a','#b02050','#ff80a0',
+                    '#c21954','#e03070','#9b144b','#ff6090','#7a0f38','#f0a0c0','#d04070','#e8507a','#b02050','#ff80a0'];
+// Source 2 colors: amber/gold family
+const COLS2=['#e8a020','#f0c060','#c87010','#ffd080','#b06000'];
+const CNULL2='#f08000';
+const CNULL_BUNDLE2=['#f08000','#ffa030','#c06000','#ffb850','#904800','#ffd090','#e09040','#ffaa40','#d07020','#ffe0a0',
+                     '#f08000','#ffa030','#c06000','#ffb850','#904800','#ffd090','#e09040','#ffaa40','#d07020','#ffe0a0'];
+
+function toS(x,y,sc){return[CX+x*sc,CY-y*sc];}
+
+let animId=null,animOn=false,lastTracks=[],lastTracks2=[];
+
+// ══════════════════════════════════════════════════════════════
+// DRAWING: Background
+// ══════════════════════════════════════════════════════════════
+function drawBg(rs,rsh,sc){
+  ctx.clearRect(0,0,W,H);
+  // radial grid
+  ctx.strokeStyle='rgba(3,124,130,0.05)';ctx.lineWidth=0.5;
+  for(let r=2;r<28;r+=2){ctx.beginPath();ctx.arc(CX,CY,r*sc,0,2*Math.PI);ctx.stroke();}
+  // ISCO
+  const isco=3*rs;
+  if(isco*sc>3){ctx.beginPath();ctx.arc(CX,CY,isco*sc,0,2*Math.PI);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(186,117,23,0.4)';ctx.lineWidth=0.8;ctx.stroke();ctx.setLineDash([]);}
+  // Photon sphere
+  const ps=1.5*rs;
+  if(ps*sc>2){ctx.beginPath();ctx.arc(CX,CY,ps*sc,0,2*Math.PI);ctx.setLineDash([2,5]);ctx.strokeStyle='rgba(155,95,191,0.4)';ctx.lineWidth=0.8;ctx.stroke();ctx.setLineDash([]);}
+  // Shell
+  ctx.beginPath();ctx.arc(CX,CY,rsh*sc,0,2*Math.PI);
+  ctx.fillStyle='rgba(3,124,130,0.04)';ctx.fill();
+  ctx.strokeStyle='rgba(3,124,130,0.5)';ctx.lineWidth=1.2;ctx.stroke();
+  // r_s
+  ctx.beginPath();ctx.arc(CX,CY,rs*sc,0,2*Math.PI);
+  ctx.fillStyle='rgba(194,25,84,0.55)';ctx.fill();
+  ctx.strokeStyle='rgba(194,25,84,0.8)';ctx.lineWidth=1;ctx.stroke();
+  // labels
+  ctx.fillStyle='rgba(212,232,240,0.3)';ctx.font='9px "Exo 2",sans-serif';
+  ctx.fillText('r_s',CX+rs*sc+3,CY-2);
+  ctx.fillText('R',CX+rsh*sc+3,CY-2);
+  if(isco*sc>3)ctx.fillText('ISCO',CX+isco*sc+3,CY-2);
+}
+
+// ══════════════════════════════════════════════════════════════
+// DRAWING: Tracks with proper-time ticks
+// ══════════════════════════════════════════════════════════════
+function drawTracks(tracks,sc,upto,showTicks,tickDt){
+  tracks.forEach(t=>{
+    const pts=t.res.pts;
+    const n=upto===undefined?pts.length:Math.min(upto,pts.length);
+    if(n<2)return;
+    ctx.beginPath();
+    const[x0,y0]=toS(pts[0][0],pts[0][1],sc);
+    ctx.moveTo(x0,y0);
+    for(let i=1;i<n;i++){const[x,y]=toS(pts[i][0],pts[i][1],sc);ctx.lineTo(x,y);}
+    if(t.isNull)ctx.setLineDash([5,3]);
+    ctx.strokeStyle=t.col;ctx.lineWidth=t.isNull?1.2:1.8;ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(x0,y0,3.5,0,2*Math.PI);ctx.fillStyle=t.col;ctx.fill();
+    if(showTicks&&!t.isNull&&t.res.taus.length>0){
+      let nxt=tickDt;ctx.fillStyle=t.col;
+      for(let i=1;i<n;i++){
+        if(t.res.taus[i]>=nxt){
+          const[tx,ty]=toS(pts[i][0],pts[i][1],sc);
+          ctx.beginPath();ctx.arc(tx,ty,2,0,2*Math.PI);ctx.fill();
+          nxt+=tickDt;
+        }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// DRAWING: Meeting locus between Src1 and Src2 wavefronts
+// Physics: at each affine step i, the "wavefront" of Src1 is the
+// set of all endpoints of Src1 tracks at step i. Same for Src2.
+// A meeting point occurs when a Src1 ray and a Src2 ray are at
+// the same (x,y) within tolerance, OR we find the closest-approach
+// point between matched ray-pairs at the same affine parameter.
+// We highlight these loci on the canvas.
+// ══════════════════════════════════════════════════════════════
+function drawMeetingLocus(tracks1,tracks2,sc,upto,color){
+  if(!tracks1.length||!tracks2.length)return;
+  // Collect meeting points: for each step, compute centroid of
+  // all Src1 endpoints and Src2 endpoints; find step where they cross.
+  // More precisely: for each Src1 track and each Src2 track,
+  // find the step where their r-coordinates most nearly match,
+  // then draw the encounter point.
+  const meetings=[];
+  const minLen=Math.min(
+    Math.min(...tracks1.map(t=>t.res.pts.length)),
+    Math.min(...tracks2.map(t=>t.res.pts.length))
+  );
+  const maxStep=upto===undefined?minLen:Math.min(upto,minLen);
+
+  // For each step, compute mean squared distance between all Src1 endpoints and Src2 endpoints
+  // Optimized: just find radial crossings for corresponding bundle rays
+  const n1=tracks1.length,n2=tracks2.length;
+  for(let ai=0;ai<n1;ai++){
+    const r1=tracks1[ai].res.pts;
+    for(let bi=0;bi<n2;bi++){
+      const r2=tracks2[bi].res.pts;
+      const maxI=Math.min(r1.length,r2.length,maxStep)-1;
+      // find minimum distance between the two paths across all steps
+      let minD=1e9,minI=-1;
+      for(let i=0;i<maxI;i++){
+        const dx=r1[i][0]-r2[i][0],dy=r1[i][1]-r2[i][1];
+        const d=dx*dx+dy*dy;
+        if(d<minD){minD=d;minI=i;}
+      }
+      if(minI>=0&&Math.sqrt(minD)<0.8/sc*2){  // threshold in world units ~2 pixels
+        const mx=(r1[minI][0]+r2[minI][0])/2;
+        const my=(r1[minI][1]+r2[minI][1])/2;
+        meetings.push({x:mx,y:my,d:Math.sqrt(minD)});
+      }
+    }
+  }
+
+  if(!meetings.length)return;
+  ctx.save();
+  meetings.forEach(m=>{
+    const[sx,sy]=toS(m.x,m.y,sc);
+    ctx.beginPath();ctx.arc(sx,sy,4.5,0,2*Math.PI);
+    ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle=color+'44';ctx.fill();
+  });
+  // Draw convex envelope (simplified: connect in order)
+  if(meetings.length>1){
+    ctx.setLineDash([4,4]);
+    ctx.strokeStyle=color+'88';ctx.lineWidth=1;
+    ctx.beginPath();
+    const[sx0,sy0]=toS(meetings[0].x,meetings[0].y,sc);
+    ctx.moveTo(sx0,sy0);
+    meetings.forEach(m=>{const[sx,sy]=toS(m.x,m.y,sc);ctx.lineTo(sx,sy);});
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+  return meetings;
+}
+
+// ══════════════════════════════════════════════════════════════
+// DRAWING: Veff (both sources)
+// ══════════════════════════════════════════════════════════════
+function drawVeff(allTracks,rs,rsh,E,E2,mfrac,mshell,it,animStepVal){
+  ctx2.clearRect(0,0,W2,H2);
+  const pl=44,pr2=14,pt=8,pb=26,pw=W2-pl-pr2,ph=H2-pt-pb;
+  const rm=Math.max(.15,rs*.5);
+  const rx2=Math.max(gv('r0')*1.3,gvSafe('r02',10)*1.3,rsh*1.5,12);
+  const N=460;
+  let vmin=Infinity,vmax=-Infinity;
+  allTracks.forEach(t=>{
+    for(let i=0;i<N;i++){
+      const r=rm+(rx2-rm)*i/(N-1);
+      const v=t.isNull?vnull(r,rs,t.b||t.L,rsh,mfrac,mshell,it):vtm(r,rs,t.L,rsh,mfrac,mshell,it);
+      if(isFinite(v)&&v<25){if(v<vmin)vmin=v;if(v>vmax)vmax=v;}
+    }
+  });
+  vmin=Math.max(0,vmin-.05);vmax=Math.min(vmax+.25,5);
+  const rxf=r=>pl+(r-rm)/(rx2-rm)*pw;
+  const vyf=v=>pt+ph-(v-vmin)/(vmax-vmin)*ph;
+  // grid
+  ctx2.strokeStyle='rgba(3,124,130,0.08)';ctx2.lineWidth=.5;
+  [.25,.5,.75].forEach(f=>{const y=pt+ph*f;ctx2.beginPath();ctx2.moveTo(pl,y);ctx2.lineTo(pl+pw,y);ctx2.stroke();});
+  const rx_rsh=rxf(rsh);
+  if(rx_rsh>=pl&&rx_rsh<=pl+pw){
+    ctx2.beginPath();ctx2.moveTo(rx_rsh,pt);ctx2.lineTo(rx_rsh,pt+ph);
+    ctx2.strokeStyle='rgba(3,124,130,0.3)';ctx2.lineWidth=.8;ctx2.setLineDash([3,3]);ctx2.stroke();ctx2.setLineDash([]);
+  }
+  // curves
+  allTracks.forEach(t=>{
+    ctx2.beginPath();let first=true;
+    for(let i=0;i<N;i++){
+      const r=rm+(rx2-rm)*i/(N-1);
+      const v=t.isNull?vnull(r,rs,t.b||t.L,rsh,mfrac,mshell,it):vtm(r,rs,t.L,rsh,mfrac,mshell,it);
+      if(!isFinite(v)||v>vmax*1.6)continue;
+      const x=rxf(r),y=vyf(Math.min(v,vmax));
+      first?(ctx2.moveTo(x,y),first=false):ctx2.lineTo(x,y);
+    }
+    if(t.isNull)ctx2.setLineDash([4,3]);
+    ctx2.strokeStyle=t.col;ctx2.lineWidth=1.5;ctx2.stroke();ctx2.setLineDash([]);
+  });
+  // E²/2 Src1
+  const Eh=E*E*.5;
+  if(Eh>=vmin&&Eh<=vmax){
+    const ye=vyf(Eh);
+    ctx2.beginPath();ctx2.moveTo(pl,ye);ctx2.lineTo(pl+pw,ye);
+    ctx2.setLineDash([5,4]);ctx2.strokeStyle='rgba(212,232,240,0.32)';ctx2.lineWidth=1;ctx2.stroke();ctx2.setLineDash([]);
+    ctx2.fillStyle='rgba(212,232,240,0.4)';ctx2.font='9px "JetBrains Mono",monospace';
+    ctx2.fillText('E₁²/2',pl+2,ye-2);
+  }
+  // E²/2 Src2 (if different)
+  const Eh2=E2*E2*.5;
+  if(Math.abs(Eh2-Eh)>0.01&&Eh2>=vmin&&Eh2<=vmax){
+    const ye2=vyf(Eh2);
+    ctx2.beginPath();ctx2.moveTo(pl,ye2);ctx2.lineTo(pl+pw,ye2);
+    ctx2.setLineDash([3,5]);ctx2.strokeStyle='rgba(232,160,32,0.32)';ctx2.lineWidth=1;ctx2.stroke();ctx2.setLineDash([]);
+    ctx2.fillStyle='rgba(232,160,32,0.4)';ctx2.font='9px "JetBrains Mono",monospace';
+    ctx2.fillText('E₂²/2',pl+2,ye2-2);
+  }
+  // animated dot Src1
+  if(animStepVal!==undefined&&lastTracks.length>0){
+    const t0=lastTracks[0];
+    const idx=Math.min(animStepVal,t0.res.pts.length-1);
+    if(idx>=0){
+      const[px2,py2]=t0.res.pts[idx];
+      const r=Math.sqrt(px2*px2+py2*py2);
+      const v=t0.isNull?vnull(r,rs,t0.b||t0.L,rsh,mfrac,mshell,it):vtm(r,rs,t0.L,rsh,mfrac,mshell,it);
+      if(isFinite(v)&&r>=rm&&r<=rx2&&v>=vmin&&v<=vmax){
+        const dx=rxf(r),dy=vyf(v);
+        ctx2.beginPath();ctx2.arc(dx,dy,4,0,2*Math.PI);
+        ctx2.fillStyle=t0.col;ctx2.shadowColor=t0.col;ctx2.shadowBlur=6;ctx2.fill();ctx2.shadowBlur=0;
+      }
+    }
+  }
+  // animated dot Src2
+  if(animStepVal!==undefined&&lastTracks2.length>0){
+    const t0=lastTracks2[0];
+    const idx=Math.min(animStepVal,t0.res.pts.length-1);
+    if(idx>=0){
+      const[px2,py2]=t0.res.pts[idx];
+      const r=Math.sqrt(px2*px2+py2*py2);
+      const v=t0.isNull?vnull(r,rs,t0.b||t0.L,rsh,mfrac,mshell,it):vtm(r,rs,t0.L,rsh,mfrac,mshell,it);
+      if(isFinite(v)&&r>=rm&&r<=rx2&&v>=vmin&&v<=vmax){
+        const dx=rxf(r),dy=vyf(v);
+        ctx2.beginPath();ctx2.arc(dx,dy,4,0,2*Math.PI);
+        ctx2.fillStyle=t0.col;ctx2.shadowColor=t0.col;ctx2.shadowBlur=6;ctx2.fill();ctx2.shadowBlur=0;
+      }
+    }
+  }
+  // axes
+  ctx2.strokeStyle='rgba(255,255,255,0.12)';ctx2.lineWidth=.5;
+  ctx2.beginPath();ctx2.moveTo(pl,pt);ctx2.lineTo(pl,pt+ph);ctx2.lineTo(pl+pw,pt+ph);ctx2.stroke();
+  ctx2.fillStyle='rgba(212,232,240,0.28)';ctx2.font='9px "Exo 2",sans-serif';
+  ctx2.fillText('r →',pl+pw-14,pt+ph+14);
+  ctx2.fillText('V',4,pt+10);
+}
+
+// ══════════════════════════════════════════════════════════════
+// SOURCE ORIGIN MARKERS
+// ══════════════════════════════════════════════════════════════
+function drawSourceMarkers(tracks,tracks2,sc){
+  // Src1 origin
+  if(tracks.length>0){
+    const p0=tracks[0].res.pts[0];
+    const[sx,sy]=toS(p0[0],p0[1],sc);
+    ctx.beginPath();ctx.arc(sx,sy,5,0,2*Math.PI);
+    ctx.fillStyle='rgba(10,168,176,0.8)';ctx.fill();
+    ctx.strokeStyle='rgba(10,168,176,1)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='rgba(10,168,176,0.9)';ctx.font='9px "Exo 2",sans-serif';
+    ctx.fillText('S₁',sx+7,sy-4);
+  }
+  // Src2 origin
+  if(tracks2.length>0){
+    const p0=tracks2[0].res.pts[0];
+    const[sx,sy]=toS(p0[0],p0[1],sc);
+    ctx.beginPath();ctx.arc(sx,sy,5,0,2*Math.PI);
+    ctx.fillStyle='rgba(232,160,32,0.8)';ctx.fill();
+    ctx.strokeStyle='rgba(232,160,32,1)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='rgba(232,160,32,0.9)';ctx.font='9px "Exo 2",sans-serif';
+    ctx.fillText('S₂',sx+7,sy-4);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MEETING LOCUS ANALYSIS — text summary
+// ══════════════════════════════════════════════════════════════
+function analyzeMeetings(tracks1,tracks2,rs){
+  const el=document.getElementById('meetbox');
+  if(!tracks1.length||!tracks2.length||gs('s2enable')!=='1'){
+    el.textContent='—';return;
+  }
+  // Compare Shapiro delays: total coordinate time for null geodesics
+  const nullTracks1=tracks1.filter(t=>t.isNull);
+  const nullTracks2=tracks2.filter(t=>t.isNull);
+  let lines=[];
+  if(nullTracks1.length&&nullTracks2.length){
+    const dt1=nullTracks1[0].res.t_total;
+    const dt2=nullTracks2[0].res.t_total;
+    const ddelta=dt2-dt1;
+    lines.push(`Shapiro Δt₁ = ${dt1.toFixed(4)} | Δt₂ = ${dt2.toFixed(4)} | ΔΔt = ${ddelta.toFixed(4)}`);
+  }
+  // Compare bending angles
+  const nb1=tracks1.filter(t=>t.isNull&&t.res.pts.length>4);
+  const nb2=tracks2.filter(t=>t.isNull&&t.res.pts.length>4);
+  if(nb1.length&&nb2.length){
+    const a1=nb1[0].res.alpha,a2=nb2[0].res.alpha;
+    lines.push(`Bending: α₁ = ${a1.toFixed(2)}° | α₂ = ${a2.toFixed(2)}° | Δα = ${(a2-a1).toFixed(2)}°`);
+  }
+  // r0 separation
+  const r01=gv('r0'),r02=gvSafe('r02',r01);
+  const phi01=gv('phi0')*Math.PI/180,phi02=gvSafe('phi02',0)*Math.PI/180;
+  const x1=r01*Math.cos(phi01),y1=r01*Math.sin(phi01);
+  const x2=r02*Math.cos(phi02),y2=r02*Math.sin(phi02);
+  const sep=Math.sqrt((x2-x1)**2+(y2-y1)**2);
+  lines.push(`Source separation = ${sep.toFixed(3)} r_G | Δr = ${Math.abs(r02-r01).toFixed(3)} | Δφ = ${Math.abs(gv('phi0')-gvSafe('phi02',0)).toFixed(1)}°`);
+  el.innerHTML=lines.join('<br>');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SIMULATE
+// ══════════════════════════════════════════════════════════════
+function simulate(doAnim){
+  if(animId)cancelAnimationFrame(animId);
+  animOn=false;
+  document.getElementById('abtn').textContent='◌ Animate';
+
+  const rs=gv('rs'),rsh=gv('rsh'),E=gv('E'),L=gv('L'),b=gv('b');
+  const r0=gv('r0'),phi0=gv('phi0'),dt=gv('dt'),nsteps=gv('nsteps');
+  const nt=gv('ntracks'),dL=gv('dL'),mfrac=gv('mfrac'),mshell=gv('mshell');
+  const nphot=gv('nphot'),dbphot=gv('dbphot');
+  const it=gs('interior'),rsign=gs('rsign'),nsign=gs('nsign');
+  const shn=gs('shownull')==='1';
+  const showTicks=gs('showticks')==='1';
+  const tickDt=gv('tickdt');
+  const s2on=gs('s2enable')==='1';
+
+  const E2=gvSafe('E2',E),L2=gvSafe('L2',L),b2=gvSafe('b2',b);
+  const r02=gvSafe('r02',r0),phi02=gvSafe('phi02',0);
+  const rsign2=gsSafe('rsign2',rsign),nsign2=gsSafe('nsign2',nsign);
+  const shn2=gsSafe('shownull2','1')==='1';
+  const nphot2=gvSafe('nphot2',0),dbphot2=gvSafe('dbphot2',.4);
+  const showMeet=gs('showmeet')==='1';
+  const meetColor=gs('meetcol')||'#ffffff';
+
+  const infoEl=document.getElementById('info');
+  if(rs>=rsh){infoEl.textContent='Error: r_s must be < R';return;}
+  infoEl.textContent='';
+
+  const sc=Math.min(W,H)*0.44/Math.max(r0*1.1,r02*1.1,rsh*1.4,8);
+
+  // ── BUILD SOURCE 1 TRACKS ──
+  const tracks=[];
+  for(let i=0;i<nt;i++){
+    const Li=parseFloat((L+i*dL).toFixed(3));
+    tracks.push({
+      res:integrate(rs,rsh,r0,phi0,E,Li,false,rsign,dt,nsteps,mfrac,mshell,it),
+      L:Li,col:COLS[i%COLS.length],isNull:false,label:`L=${Li.toFixed(2)}`,src:1
+    });
+  }
+  if(shn){
+    tracks.push({
+      res:integrate(rs,rsh,r0,phi0,1,b,true,nsign,dt,nsteps,mfrac,mshell,it),
+      b,col:CNULL,isNull:true,label:`γ b=${b.toFixed(2)}`,src:1
+    });
+  }
+  if(nphot>0){
+    for(let k=0;k<nphot;k++){
+      const bk=b+(k-(nphot-1)/2)*dbphot;
+      if(bk<=0)continue;
+      tracks.push({
+        res:integrate(rs,rsh,r0,phi0,1,bk,true,nsign,dt,nsteps,mfrac,mshell,it),
+        b:bk,col:CNULL_BUNDLE[k%CNULL_BUNDLE.length],isNull:true,
+        label:`γ₁ b=${bk.toFixed(2)}`,src:1
+      });
+    }
+  }
+  lastTracks=tracks;
+
+  // ── BUILD SOURCE 2 TRACKS ──
+  const tracks2=[];
+  if(s2on){
+    tracks2.push({
+      res:integrate(rs,rsh,r02,phi02,E2,L2,false,rsign2,dt,nsteps,mfrac,mshell,it),
+      L:L2,col:COLS2[0],isNull:false,label:`L₂=${L2.toFixed(2)}`,src:2
+    });
+    if(shn2){
+      tracks2.push({
+        res:integrate(rs,rsh,r02,phi02,1,b2,true,nsign2,dt,nsteps,mfrac,mshell,it),
+        b:b2,col:CNULL2,isNull:true,label:`γ₂ b=${b2.toFixed(2)}`,src:2
+      });
+    }
+    if(nphot2>0){
+      for(let k=0;k<nphot2;k++){
+        const bk=b2+(k-(nphot2-1)/2)*dbphot2;
+        if(bk<=0)continue;
+        tracks2.push({
+          res:integrate(rs,rsh,r02,phi02,1,bk,true,nsign2,dt,nsteps,mfrac,mshell,it),
+          b:bk,col:CNULL_BUNDLE2[k%CNULL_BUNDLE2.length],isNull:true,
+          label:`γ₂ b=${bk.toFixed(2)}`,src:2
+        });
+      }
+    }
+  }
+  lastTracks2=tracks2;
+
+  const allTracks=[...tracks,...tracks2];
+
+  function drawAll(upto){
+    drawBg(rs,rsh,sc);
+    drawTracks(tracks,sc,upto,showTicks,tickDt);
+    drawTracks(tracks2,sc,upto,showTicks,tickDt);
+    drawSourceMarkers(tracks,tracks2,sc);
+    if(s2on&&showMeet){
+      const nullT1=tracks.filter(t=>t.isNull);
+      const nullT2=tracks2.filter(t=>t.isNull);
+      drawMeetingLocus(nullT1.length?nullT1:tracks,nullT2.length?nullT2:tracks2,sc,upto,meetColor);
+    }
+    drawVeff(allTracks,rs,rsh,E,E2,mfrac,mshell,it,upto);
+  }
+
+  if(doAnim){
+    animOn=true;
+    document.getElementById('abtn').textContent='■ Stop';
+    const mp=Math.max(...allTracks.map(t=>t.res.pts.length));
+    const spd=Math.max(1,Math.floor(mp/600));
+    let step=0;
+    function frame(){
+      if(!animOn)return;
+      drawBg(rs,rsh,sc);
+      drawTracks(tracks,sc,step,showTicks,tickDt);
+      drawTracks(tracks2,sc,step,showTicks,tickDt);
+      drawSourceMarkers(tracks,tracks2,sc);
+      if(s2on&&showMeet){
+        const nullT1=tracks.filter(t=>t.isNull);
+        const nullT2=tracks2.filter(t=>t.isNull);
+        drawMeetingLocus(nullT1.length?nullT1:tracks,nullT2.length?nullT2:tracks2,sc,step,meetColor);
+      }
+      drawVeff(allTracks,rs,rsh,E,E2,mfrac,mshell,it,step);
+      step+=spd;
+      if(step<mp)animId=requestAnimationFrame(frame);
+      else{animOn=false;document.getElementById('abtn').textContent='◌ Animate';}
+    }
+    frame();
+  }else{
+    drawAll();
+  }
+
+  // Legend
+  const leg=document.getElementById('leg');
+  leg.innerHTML='';
+  allTracks.forEach(t=>{
+    const d=document.createElement('div');d.className='leg-item';
+    const dot=document.createElement('span');dot.className='leg-dot';dot.style.background=t.col;
+    const lbl=document.createElement('span');lbl.className='leg-text';
+    lbl.textContent=`[Src${t.src}] ${t.label} — ${t.res.captured?'captured':t.res.escaped?'escaped':'orbit/transit'} (${t.res.pts.length} steps)`;
+    d.appendChild(dot);d.appendChild(lbl);leg.appendChild(d);
+  });
+  const mde=Math.max(...allTracks.map(t=>t.res.maxDE));
+  document.getElementById('econs').textContent=`Energy conservation: max ΔE/E = ${mde.toExponential(2)}`;
+
+  buildTable(allTracks,rs);
+  updateLive();
+  analyzeMeetings(tracks,tracks2,rs);
+}
+
+// ══════════════════════════════════════════════════════════════
+// CIRCULAR ORBIT SNAP
+// ══════════════════════════════════════════════════════════════
+let _circData=null,_circSrc=1;
+function snapCircular(src){
+  _circSrc=src||1;
+  const rs=gv('rs');
+  const r=src===2?gvSafe('r02',gv('r0')):gv('r0');
+  const rsh=gv('rsh');
+  const isco=3*rs,denom=2*r-3*rs,edenom=1-3*rs/(2*r);
+  const el=document.getElementById('circ-result'),warn=document.getElementById('circ-warn');
+  warn.style.display='none';
+  if(denom<=0||edenom<=0){
+    el.innerHTML=`r₀ = ${r.toFixed(2)} is inside ISCO (${isco.toFixed(2)})<br>No stable circular orbit.`;
+    warn.textContent='Move r₀ to ≥ 3r_s.';warn.style.display='block';_circData=null;
+  }else{
+    const L2c=rs*r*r/denom,E2c=Math.pow(1-rs/r,2)/edenom;
+    const Lc=Math.sqrt(L2c),Ec=Math.sqrt(E2c);
+    _circData={L:Lc,E:Ec};
+    const stable=r>=isco;
+    el.innerHTML=`Src ${src} · r₀ = ${r.toFixed(3)}<br>L = <b>${Lc.toFixed(4)}</b><br>E = <b>${Ec.toFixed(4)}</b><br>ISCO = ${isco.toFixed(3)}&nbsp;&nbsp;<span style="color:${stable?'#1aaf82':'var(--magenta2)'}">${stable?'✓ Stable':'⚠ Unstable'}</span>`;
+    if(!stable){warn.textContent='Unstable orbit (r < ISCO).';warn.style.display='block';}
+    if(r<rsh){warn.textContent=(warn.textContent?warn.textContent+' ':'')+'Note: r₀ inside shell R.';warn.style.display='block';}
+  }
+  document.getElementById('circ-overlay').classList.add('show');
+}
+function applyCircular(){
+  if(!_circData)return;
+  if(_circSrc===2){
+    document.getElementById('L2').value=_circData.L.toFixed(2);
+    document.getElementById('E2').value=_circData.E.toFixed(3);
+    document.getElementById('rsign2').value='0';
+  }else{
+    document.getElementById('L').value=_circData.L.toFixed(2);
+    document.getElementById('E').value=_circData.E.toFixed(3);
+    document.getElementById('rsign').value='0';
+  }
+  closeCirc();updateLive();simulate();
+}
+function closeCirc(){document.getElementById('circ-overlay').classList.remove('show');}
+
+// ══════════════════════════════════════════════════════════════
+// LIVE CONSTANTS
+// ══════════════════════════════════════════════════════════════
+function updateLive(){
+  const rsEl=document.getElementById('rs');if(!rsEl)return;
+  const rs=gv('rs'),rsh=gv('rsh'),b=gv('b'),E=gv('E'),L=gv('L'),r0=gv('r0');
+  const b2=gvSafe('b2',b),E2=gvSafe('E2',E),L2=gvSafe('L2',L),r02=gvSafe('r02',r0);
+  const mfrac=gv('mfrac'),mshell=gv('mshell'),it=gs('interior');
+  const bc=1.5*Math.sqrt(3)*rs,isco=3*rs;
+  const Ve1=vtm(r0,rs,L,rsh,mfrac,mshell,it);
+  const Ve2=vtm(r02,rs,L2,rsh,mfrac,mshell,it);
+  const E2h1=E*E*.5,ok1=E2h1>Ve1;
+  const E2h2=E2*E2*.5,ok2=E2h2>Ve2;
+  const vesc1=Math.sqrt(rs/r0)/Math.sqrt(Math.max(1e-10,1-rs/r0));
+  const vesc2=Math.sqrt(rs/r02)/Math.sqrt(Math.max(1e-10,1-rs/r02));
+  const L_isco=Math.sqrt(3)*rs;
+  document.getElementById('livebox').innerHTML=
+    `<b>r_s</b>=${rs.toFixed(2)} | <b>ISCO</b>=${isco.toFixed(2)} | <b>ph.sph</b>=${(1.5*rs).toFixed(2)} | <b>b_crit</b>=${bc.toFixed(3)}<br>`+
+    `<b>Src1</b>: V_eff(r₀)=${Ve1.toFixed(4)} | E²/2=${E2h1.toFixed(4)} | v_esc=${vesc1.toFixed(4)} <span class="${ok1?'tag-ok':'tag-err'}">${ok1?'✓':'✗'}</span><br>`+
+    `<b>Src2</b>: V_eff(r₀)=${Ve2.toFixed(4)} | E²/2=${E2h2.toFixed(4)} | v_esc=${vesc2.toFixed(4)} <span class="${ok2?'tag-ok':'tag-err'}">${ok2?'✓':'✗'}</span><br>`+
+    `<b>L_ISCO</b>=${L_isco.toFixed(3)}=√3·r_s | <b>M_in/M</b>=${mfrac.toFixed(2)} | <b>M_sh/M</b>=${mshell.toFixed(2)}`;
+  const tickNote=document.getElementById('ptick-note');
+  if(tickNote)tickNote.textContent=gs('showticks')==='1'?`Δτ ticks every ${gv('tickdt').toFixed(1)} τ`:'';
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLE
+// ══════════════════════════════════════════════════════════════
+function buildTable(tracks,rs){
+  const tb=document.getElementById('tblbody');tb.innerHTML='';
+  tracks.forEach(t=>{
+    const r=t.res;
+    const dil=r.tau_total>0.01?(r.t_total/r.tau_total).toFixed(3):'—';
+    const st=r.captured?'<span style="color:var(--magenta2)">captured</span>':r.escaped?'<span style="color:#1aaf82">escaped</span>':'orbit/transit';
+    const rmax_str=r.rmax>65?'<span style="color:var(--text3)">unbound</span>':r.rmax.toFixed(2);
+    const vesc=Math.sqrt(rs/Math.max(r.rmin,0.01))/Math.sqrt(Math.max(1e-10,1-rs/Math.max(r.rmin,rs*0.6)));
+    const tr2=document.createElement('tr');
+    const srcStyle=t.src===2?`color:var(--s2col)`:`color:var(--accent2)`;
+    tr2.innerHTML=
+      `<td style="${srcStyle}">Src${t.src}</td>`+
+      `<td><span class="track-dot" style="background:${t.col}"></span>${t.label}</td>`+
+      `<td>${t.isNull?t.b.toFixed(2):t.L.toFixed(2)}</td>`+
+      `<td>${r.rmin.toFixed(3)}</td><td>${rmax_str}</td>`+
+      `<td>${r.alpha.toFixed(1)}°</td><td>${r.t_total.toFixed(2)}</td>`+
+      `<td>${r.tau_total.toFixed(2)}</td><td>${dil}</td>`+
+      `<td>${vesc.toFixed(3)}</td><td>${st}</td>`;
+    tb.appendChild(tr2);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// EXPORT
+// ══════════════════════════════════════════════════════════════
+function exportCSV(){
+  const all=[...lastTracks,...lastTracks2];
+  if(!all.length){alert('Run simulation first.');return;}
+  const rs=gv('rs');
+  const lines=['src,track,step,tau,t,r,phi_rad,x,y,pr,v_esc_local'];
+  all.forEach(t=>{
+    t.res.pts.forEach(([x,y],i)=>{
+      const r=Math.sqrt(x*x+y*y),phi=Math.atan2(y,x);
+      const pr=i>0?(r-Math.sqrt(t.res.pts[i-1][0]**2+t.res.pts[i-1][1]**2))/((t.res.taus[i]||0)-(t.res.taus[i-1]||0)||1):0;
+      const vesc=Math.sqrt(rs/Math.max(r,0.01)).toFixed(6);
+      lines.push(`${t.src},${t.label},${i},${(t.res.taus[i]||0).toFixed(5)},${(t.res.ts[i]||0).toFixed(5)},${r.toFixed(6)},${phi.toFixed(6)},${x.toFixed(6)},${y.toFixed(6)},${pr.toFixed(6)},${vesc}`);
+    });
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));
+  a.download='geodesics_dual.csv';a.click();
+}
+
+function exportJSON(){
+  const all=[...lastTracks,...lastTracks2];
+  if(!all.length){alert('Run simulation first.');return;}
+  const rs=gv('rs'),rsh=gv('rsh');
+  const out={
+    version:'dual-01.00',
+    parameters:{
+      rs,rsh,mshell:gv('mshell'),mfrac:gv('mfrac'),
+      src1:{E:gv('E'),L:gv('L'),b:gv('b'),r0:gv('r0'),phi0:gv('phi0')},
+      src2:{E:gvSafe('E2',1),L:gvSafe('L2',3.46),b:gvSafe('b2',5.2),r0:gvSafe('r02',10),phi0:gvSafe('phi02',0)},
+      dt:gv('dt'),nsteps:gv('nsteps')
+    },
+    tracks:all.map(t=>({
+      src:t.src,label:t.label,L:t.L,color:t.col,isNull:t.isNull,
+      result:{captured:t.res.captured,escaped:t.res.escaped,rmin:t.res.rmin,rmax:t.res.rmax,alpha:t.res.alpha,tau_total:t.res.tau_total,t_total:t.res.t_total,maxDE:t.res.maxDE},
+      points:t.res.pts.map(([x,y],i)=>({x,y,tau:t.res.taus[i]||0,t:t.res.ts[i]||0}))
+    }))
+  };
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}));
+  a.download='geodesics_dual.json';a.click();
+}
+
+// ══════════════════════════════════════════════════════════════
+// URL SHARING
+// ══════════════════════════════════════════════════════════════
+function shareURL(e){
+  e.preventDefault();
+  const p=new URLSearchParams();
+  ['rs','rsh','mshell','mfrac','E','L','b','nphot','dbphot','r0','phi0',
+   'E2','L2','b2','nphot2','dbphot2','r02','phi02',
+   'ntracks','dL','dt','nsteps','tickdt']
+    .forEach(k=>{const el=document.getElementById(k);if(el)p.set(k,el.value);});
+  ['interior','rsign','nsign','shownull','showticks','s2enable','rsign2','nsign2','shownull2','showmeet','meetcol']
+    .forEach(k=>{const el=document.getElementById(k);if(el)p.set(k,el.value);});
+  navigator.clipboard.writeText(location.origin+location.pathname+'?'+p.toString()).then(()=>{
+    const a=document.getElementById('share-link');
+    a.textContent='✓ copied!';
+    setTimeout(()=>{a.textContent='⬡ share config';},2000);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// ANIMATE TOGGLE
+// ══════════════════════════════════════════════════════════════
+function animToggle(){
+  if(animOn){animOn=false;if(animId)cancelAnimationFrame(animId);document.getElementById('abtn').textContent='◌ Animate';return;}
+  simulate(true);
+}
+
+// ══════════════════════════════════════════════════════════════
+// HELP
+// ══════════════════════════════════════════════════════════════
+function showHelp(k){
+  const msgs={
+    td:'Δt/Δτ is the ratio of coordinate time (distant observer) to proper time (particle clock). Near r_s, the metric factor (1−r_s/r)→0 making coordinate time diverge — gravitational time dilation of GR.',
+    veff:'V_eff(r) encodes radial turning points. Where E²/2 = V_eff, radial velocity ṙ = 0 (periapsis/apoapsis). GR term −r_s·L²/r³ deepens the well and removes stable orbits inside ISCO = 3r_s.',
+    s2:'DUAL-SOURCE PHYSICS:\n\nBoth sources are placed at (r₀, φ₀) in the same equatorial plane of Schwarzschild spacetime. They fire geodesics at τ=0 simultaneously (in coordinate time).\n\nKey observables:\n• Shapiro delay difference ΔΔt: if the sources are at different r₀, their photons cross the gravitational potential at different depths → different coordinate travel times even for same b.\n• Bending angle difference Δα: sources at different φ₀ experience the same geometry but the geometric lensing direction differs relative to the line of sight.\n• Meeting locus: the set of spacetime points where a geodesic from Src1 and a geodesic from Src2 share the same (x,y) at the same affine step — highlighted as circles. This is where the two wavefronts could "interfere" classically.\n\nInterior geometry: inside the shell, if flat (Minkowski), geodesics become straight lines — both wavefronts propagate at c with no deflection inside.'
+  };
+  alert(msgs[k]);
+}
+
+// Select elements trigger live update
+['interior','rsign','nsign','shownull','showticks','s2enable','rsign2','nsign2','shownull2','showmeet','meetcol'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.addEventListener('change',updateLive);
+});
+</script>
+</body>
+</html>
