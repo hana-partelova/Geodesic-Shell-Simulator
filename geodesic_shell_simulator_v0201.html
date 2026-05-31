@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geodesic Shell Simulator v02.01</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Exo+2:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04070f;
+  --bg2:#080d1a;
+  --bg3:#0d1525;
+  --bg4:#111c30;
+  --border:rgba(3,124,130,0.18);
+  --border2:rgba(3,124,130,0.35);
+  --border3:rgba(194,25,84,0.3);
+  --text:#d4e8f0;
+  --text2:#7eafc0;
+  --text3:#3d6070;
+  --accent:#037c82;
+  --accent2:#0aa8b0;
+  --magenta:#c21954;
+  --magenta2:#e8206a;
+  --purple:#3c134d;
+  --purple2:#5a1f75;
+  --warn:#ba6017;
+  --success:#1a8f6e;
+  --radius:8px;
+  --radius-sm:5px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;padding:0;overflow-x:hidden}
+
+/* Layout: sidebar right, main left */
+.app{display:grid;grid-template-columns:1fr 440px;gap:0;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%);
+  border-left:1px solid var(--border2);
+  padding:18px 16px 24px;
+  overflow-y:auto;height:100vh;position:sticky;top:0;
+}
+.logo{font-family:'Orbitron',sans-serif;font-weight:700;font-size:12px;letter-spacing:.22em;
+  color:var(--accent2);text-transform:uppercase;margin-bottom:2px}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:.05em;margin-bottom:16px}
+
+.sec-head{
+  font-family:'Orbitron',sans-serif;font-weight:500;font-size:8.5px;
+  color:var(--accent);text-transform:uppercase;letter-spacing:.16em;
+  margin:14px 0 5px;padding-top:12px;border-top:1px solid var(--border);
+}
+.sec-head:first-of-type{border-top:none;padding-top:0;margin-top:0}
+.sec-head.magenta{color:var(--magenta)}
+.sec-head.purple{color:#9b5fbf}
+
+.hint{font-size:10.5px;color:var(--text2);line-height:1.6;
+  padding:6px 9px;border-left:2px solid var(--border2);margin:4px 0 7px;
+  background:rgba(3,124,130,0.04);border-radius:0 4px 4px 0}
+.hint b{color:var(--text);font-weight:500}
+
+/* ── STEPPER ROWS ── */
+.row{display:flex;align-items:center;gap:6px;margin:3px 0}
+.row label{min-width:152px;flex-shrink:0;font-size:11px;color:var(--text2)}
+.row select{flex:1;font-size:11px;font-family:'Exo 2',sans-serif;
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  border-radius:var(--radius-sm);padding:4px 6px;cursor:pointer}
+.row select:focus{outline:none;border-color:var(--accent)}
+
+.stepper{display:flex;align-items:center;gap:0;flex:1}
+.stepper button{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text2);
+  font-size:13px;line-height:1;padding:2px 7px;cursor:pointer;
+  transition:all .12s;user-select:none;
+}
+.stepper button:first-child{border-radius:var(--radius-sm) 0 0 var(--radius-sm);border-right:none}
+.stepper button:last-child{border-radius:0 var(--radius-sm) var(--radius-sm) 0;border-left:none}
+.stepper button:hover{background:var(--bg4);color:var(--accent2)}
+.stepper input[type=number]{
+  flex:1;min-width:0;text-align:center;
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;
+  color:var(--text);background:var(--bg4);
+  border:1px solid var(--border);border-left:none;border-right:none;
+  padding:3px 4px;outline:none;
+  -moz-appearance:textfield;
+}
+.stepper input[type=number]::-webkit-inner-spin-button,
+.stepper input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+.stepper input[type=number]:focus{border-color:var(--accent);background:var(--bg3)}
+
+.btn-row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.btn{flex:1;font-size:11px;padding:7px 8px;font-family:'Exo 2',sans-serif;
+  background:transparent;border:1px solid var(--border);color:var(--text);
+  border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg3);border-color:var(--border2)}
+.btn.primary{border-color:var(--accent2);color:var(--accent2)}
+.btn.primary:hover{background:rgba(3,124,130,0.12)}
+.btn.magenta{border-color:var(--magenta);color:var(--magenta)}
+.btn.magenta:hover{background:rgba(194,25,84,0.1)}
+.btn.purple-btn{border-color:#9b5fbf;color:#9b5fbf}
+.btn.purple-btn:hover{background:rgba(60,19,77,0.3)}
+#info{font-size:10.5px;color:var(--magenta2);margin-top:6px;min-height:14px}
+
+/* ── MAIN CONTENT ── */
+.main{padding:12px 14px 20px;overflow-y:auto;height:100vh}
+.main-title{font-family:'Orbitron',sans-serif;font-weight:700;font-size:17px;
+  letter-spacing:.16em;color:var(--text);text-transform:uppercase;margin-bottom:1px;font-size:14px}
+.main-sub{font-size:11px;color:var(--text3);letter-spacing:.04em;margin-bottom:16px}
+
+canvas{display:block;border-radius:var(--radius);border:1px solid var(--border)}
+.canvas-wrap{position:relative}
+.canvas-label{font-size:10px;color:var(--text3);margin:4px 0 12px}
+
+/* 3D canvas */
+#cv3d{cursor:grab}
+#cv3d:active{cursor:grabbing}
+.canvas-3d-label{font-size:10px;color:var(--text3);margin:4px 0 12px}
+
+.section-divider{
+  border:none;border-top:1px solid var(--border);margin:10px 0 8px;
+}
+
+/* legend */
+.leg-item{display:flex;align-items:center;gap:7px;margin:2px 0}
+.leg-dot{width:14px;height:3px;border-radius:2px;flex-shrink:0}
+.leg-text{font-size:10.5px;color:var(--text2)}
+#econs{font-size:10.5px;margin-top:3px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+/* table */
+.tbl-head{font-family:'Orbitron',sans-serif;font-weight:500;font-size:9px;
+  color:var(--text);letter-spacing:.12em;text-transform:uppercase;margin:16px 0 4px}
+.tbl-hint{font-size:10.5px;color:var(--text2);line-height:1.6;
+  padding:5px 9px;border-left:2px solid var(--border2);margin-bottom:7px;
+  background:rgba(3,124,130,0.04);border-radius:0 4px 4px 0}
+.tbl-hint b{color:var(--text);font-weight:500}
+.dtbl{width:100%;border-collapse:collapse;font-size:10.5px}
+.dtbl th{text-align:left;padding:5px 7px;background:var(--bg2);color:var(--text3);
+  font-weight:500;border-bottom:1px solid var(--border);
+  font-family:'Orbitron',sans-serif;font-size:7.5px;letter-spacing:.1em;
+  text-transform:uppercase;white-space:nowrap}
+.dtbl td{padding:5px 7px;border-bottom:1px solid var(--border);
+  color:var(--text);vertical-align:middle;
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;white-space:nowrap}
+.dtbl td:first-child,.dtbl td:last-child{font-family:'Exo 2',sans-serif;font-size:11px}
+.dtbl tr:last-child td{border-bottom:none}
+.dtbl tr:hover td{background:rgba(3,124,130,0.06)}
+.track-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+
+/* live box */
+.live-head{font-family:'Orbitron',sans-serif;font-weight:500;font-size:9px;
+  color:var(--text);letter-spacing:.12em;text-transform:uppercase;margin:16px 0 4px}
+.live-box{background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px 12px;font-size:11px;
+  line-height:2.0;color:var(--text2)}
+.live-box b{color:var(--text);font-weight:500;font-family:'JetBrains Mono',monospace;font-size:10.5px}
+
+.action-row{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap}
+.action-btn{font-size:11px;padding:7px 12px;font-family:'Exo 2',sans-serif;
+  background:transparent;border:1px solid var(--border);color:var(--text);
+  border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;white-space:nowrap}
+.action-btn:hover{background:var(--bg3);border-color:var(--border2)}
+.action-btn.accent{border-color:var(--accent2);color:var(--accent2)}
+.action-btn.accent:hover{background:rgba(3,124,130,0.1)}
+.action-btn.mag{border-color:var(--magenta);color:var(--magenta)}
+.action-btn.mag:hover{background:rgba(194,25,84,0.08)}
+
+.tag-ok{color:#1aaf82}
+.tag-err{color:var(--magenta2)}
+
+/* circular orbit dialog overlay */
+#circ-overlay{
+  display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;
+  background:rgba(4,7,15,0.85);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;
+}
+#circ-overlay.show{display:flex}
+.circ-box{
+  background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);
+  padding:22px 24px;min-width:300px;max-width:380px;
+}
+.circ-box h3{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:.18em;
+  color:var(--accent2);text-transform:uppercase;margin-bottom:12px}
+.circ-box p{font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:10px}
+.circ-box .circ-val{
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);
+  background:var(--bg3);border:1px solid var(--border);border-radius:4px;
+  padding:8px 10px;margin:6px 0 12px;line-height:1.9
+}
+.circ-btns{display:flex;gap:8px;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══════════════════  MAIN CONTENT  ═══════════════════ -->
+<div class="main">
+  <div class="main-title">Geodesic Shell Simulator</div>
+  <div class="main-sub" id="version-sub">Hanka Partelová &amp; Natália Salomé Móller · v02.01
+    &nbsp;<a id="share-link" href="#" onclick="shareURL(event)"
+      style="color:var(--accent2);font-size:10px;text-decoration:none;
+      border:1px solid var(--border2);padding:1px 6px;border-radius:3px;margin-left:6px">
+      ⬡ share config
+    </a>
+  </div>
+
+  <!-- 2D Canvas -->
+  <div class="canvas-wrap">
+    <canvas id="cv" width="520" height="320" style="width:100%"></canvas>
+  </div>
+  <div class="canvas-label">
+    Equatorial plane (r, φ) &nbsp;·&nbsp;
+    <span style="color:var(--magenta)">●</span> Schwarzschild radius r_s &nbsp;·&nbsp;
+    <span style="color:var(--accent)">○</span> Shell R &nbsp;·&nbsp;
+    <span style="color:var(--warn);opacity:.7">- -</span> ISCO (3r_s) &nbsp;·&nbsp;
+    <span style="color:#9b5fbf">⚬</span> Photon sphere (1.5r_s)
+    &nbsp;&nbsp;<span id="ptick-note" style="color:var(--text3);font-size:9px"></span>
+  </div>
+
+  <!-- Veff Canvas -->
+  <canvas id="cv2" width="520" height="90" style="width:100%"></canvas>
+  <div class="canvas-label">Effective potential V<sub>eff</sub>(r) &nbsp;·&nbsp;
+    dashed = E²/2 &nbsp;·&nbsp;
+    <span style="color:var(--accent2);font-size:9px">●</span> particle position (during animation)</div>
+
+  <div id="leg" style="margin-top:3px"></div>
+  <div id="econs"></div>
+
+  <hr class="section-divider">
+
+  <!-- 3D Canvas -->
+  <div style="font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.14em;
+    color:var(--accent);text-transform:uppercase;margin-bottom:6px">
+    3D Orbit Visualisation
+    <span style="font-family:'Exo 2',sans-serif;font-size:10px;color:var(--text3);
+      letter-spacing:.02em;font-weight:400;text-transform:none">
+      &nbsp;· drag to rotate &nbsp;· scroll to zoom
+    </span>
+  </div>
+  <canvas id="cv3d" width="520" height="260" style="width:100%"></canvas>
+  <div class="canvas-3d-label">Orbit lifted from equatorial plane by inclination θ (set in sidebar) ·
+    <span style="color:var(--magenta)">●</span> r_s &nbsp;·&nbsp;
+    <span style="color:var(--accent)">○</span> Shell R &nbsp;·&nbsp;
+    wireframe sphere = outer boundary
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- TRAJECTORY TABLE -->
+  <div class="tbl-head">Trajectory Summary</div>
+  <div class="tbl-hint">
+    <b>α</b> = bending angle (degrees). &nbsp;
+    <b>r_min</b> = periapsis. &nbsp;
+    <b>v_esc</b> = escape speed at r₀. &nbsp;
+    <b>Δt/Δτ</b> = gravitational time dilation (coordinate / proper time). Values ≫1 near r_s.
+  </div>
+  <div style="overflow-x:auto">
+    <table class="dtbl">
+      <thead><tr>
+        <th>Track</th><th>L</th><th>r_min</th><th>r_max</th>
+        <th>Bend α</th><th>Δt coord</th><th>Δτ proper</th><th>Δt / Δτ</th>
+        <th>v_esc</th><th>Result</th>
+      </tr></thead>
+      <tbody id="tblbody"></tbody>
+    </table>
+  </div>
+
+  <!-- LIVE CONSTANTS -->
+  <div class="live-head">Live Physical Constants</div>
+  <div class="live-box" id="livebox">—</div>
+
+  <div class="action-row">
+    <button class="action-btn accent" onclick="exportCSV()">↓ Download CSV</button>
+    <button class="action-btn mag" onclick="exportJSON()">↓ Export JSON</button>
+    <button class="action-btn" onclick="showHelp('td')">Time dilation?</button>
+    <button class="action-btn" onclick="showHelp('veff')">V_eff guide</button>
+  </div>
+</div><!-- /.main -->
+
+<!-- ═══════════════════  SIDEBAR  ═══════════════════ -->
+<div class="sidebar">
+  <div class="logo">Geodesic Shell</div>
+  <div class="logo-sub">Schwarzschild spacetime simulator</div>
+
+  <!-- SPACETIME GEOMETRY -->
+  <div class="sec-head">Spacetime Geometry</div>
+  <div class="hint">
+    <b>r_s = 2GM/c²</b> — Schwarzschild radius (event horizon). Nothing with r &lt; r_s escapes.
+    Shell at <b>R &gt; r_s</b> forms the boundary between the outer Schwarzschild and inner spacetime.
+    <b>M_shell</b> is the shell's own gravitational mass. Interior: flat (Minkowski — shell theorem states a spherical shell creates no interior gravitational field) or uniform-density mass M_in.
+  </div>
+  <div class="row"><label>r_s — Schwarzschild radius [M·G/c²]</label>
+    <div class="stepper" id="s-rs"></div></div>
+  <div class="row"><label>R — shell radius [M·G/c²], must satisfy R > r_s</label>
+    <div class="stepper" id="s-rsh"></div></div>
+  <div class="row"><label>M_shell / M — shell gravitational mass [dimensionless]</label>
+    <div class="stepper" id="s-mshell"></div></div>
+  <div class="row"><label>Interior geometry</label>
+    <select id="interior" onchange="updateLive()">
+      <option value="flat">Empty (Minkowski)</option>
+      <option value="uniform">Uniform mass density</option>
+    </select>
+  </div>
+  <div class="row"><label>M_in / M — interior mass fraction [dimensionless]</label>
+    <div class="stepper" id="s-mfrac"></div></div>
+
+  <!-- MASSIVE PARTICLE -->
+  <div class="sec-head magenta">Massive Particle (Timelike)</div>
+  <div class="hint">
+    <b>E ≥ 1</b> = particle has enough energy to escape (unbound). <b>E &lt; 1</b> = bound orbit (trapped in potential well).
+    <b>L</b> = angular momentum; larger L → stronger centrifugal barrier (larger periapsis). <b>ISCO = 3r_s</b> is the innermost stable circular orbit. Use <b>⊙ Snap</b> to auto-compute the correct L and E for a circular orbit at r₀.
+  </div>
+  <div class="row"><label>E — energy / mc² [dimensionless]; E≥1 = unbound, E&lt;1 = bound</label>
+    <div class="stepper" id="s-E"></div></div>
+  <div class="row"><label>L — angular momentum [M·G·m/c]</label>
+    <div class="stepper" id="s-L"></div></div>
+  <div class="row"><label>Initial ṙ₀ direction</label>
+    <select id="rsign">
+      <option value="-1">Inward (toward centre)</option>
+      <option value="1">Outward (away from centre)</option>
+      <option value="0">Tangential (ṙ₀ = 0)</option>
+    </select>
+  </div>
+  <div class="btn-row">
+    <button class="btn purple-btn" onclick="snapCircular()">⊙ Snap to Circular Orbit</button>
+  </div>
+
+  <!-- PHOTON -->
+  <div class="sec-head" style="color:#9b5fbf">Photon (Null Geodesic)</div>
+  <div class="hint">
+    <b>b_crit = (3√3/2)·r_s</b> is the critical impact parameter. Photons with b &lt; b_crit are captured by the black hole. Photons near b ≈ b_crit orbit on the <b>photon sphere (1.5·r_s)</b>. Larger b → photon deflects but escapes (gravitational lensing).
+    <b>Lensing bundle</b> fires N photons spread ±Δb around b — shows gravitational lensing at different impact parameters.
+  </div>
+  <div class="row"><label>b — photon impact parameter [M·G/c²]</label>
+    <div class="stepper" id="s-b"></div></div>
+  <div class="row"><label>Initial ṙ₀ direction</label>
+    <select id="nsign">
+      <option value="-1">Inward</option>
+      <option value="1">Outward</option>
+      <option value="0">Tangential (ṙ₀ = 0)</option>
+    </select>
+  </div>
+  <div class="row"><label>Show photon track</label>
+    <select id="shownull"><option value="1">Yes</option><option value="0">No</option></select>
+  </div>
+  <div class="row"><label>Lensing bundle (N photons)</label>
+    <div class="stepper" id="s-nphot"></div></div>
+  <div class="row"><label>Bundle Δb spread</label>
+    <div class="stepper" id="s-dbphot"></div></div>
+
+  <!-- INITIAL POSITION -->
+  <div class="sec-head">Initial Position</div>
+  <div class="row"><label>r₀ — initial radial distance [M·G/c²]</label>
+    <div class="stepper" id="s-r0"></div></div>
+  <div class="row"><label>φ₀ — initial angle [°, 0–360]</label>
+    <div class="stepper" id="s-phi0"></div></div>
+  <div class="row"><label>θ — inclination angle for 3D view [°]</label>
+    <div class="stepper" id="s-theta"></div></div>
+
+  <!-- MULTI-TRACK -->
+  <div class="sec-head">Multi-Track L Series</div>
+  <div class="hint">Zobrazí až 5 hmotných trajektórií súčasne, každá s hodnotou L = L₀ + i·ΔL. Pomôže porovnať, ako rôzny uhlový moment mení tvar dráhy — od pádu do centra (malé L) po obehy a únik (veľké L).</div>
+  <div class="row"><label>Number of tracks</label>
+    <div class="stepper" id="s-ntracks"></div></div>
+  <div class="row"><label>ΔL — angular momentum step between tracks [M·G·m/c]</label>
+    <div class="stepper" id="s-dL"></div></div>
+
+  <!-- DISPLAY OPTIONS -->
+  <div class="sec-head">Display Options</div>
+  <div class="row"><label>Proper-time tick marks</label>
+    <select id="showticks">
+      <option value="1">Yes — show Δτ ticks</option>
+      <option value="0">No</option>
+    </select>
+  </div>
+  <div class="row"><label>Proper-time tick interval [τ units]</label>
+    <div class="stepper" id="s-tickdt"></div></div>
+
+  <!-- NUMERICAL INTEGRATION -->
+  <div class="sec-head">Numerical Integration (RK4)</div>
+  <div class="hint">Metóda <b>Runge-Kutta 4. rádu (RK4)</b> — najpoužívanejší numerický integrátor pre ODE. Chyba je úmerná dτ⁴. Menšie <b>dτ</b> → vyššia accuracy at the cost of computation time. <b>ΔE/E</b> is the relative energy conservation residual — a quality indicator (ideally &lt; 10⁻⁵).</div>
+  <div class="row"><label>Step dτ — integration step size [proper time τ]</label>
+    <div class="stepper" id="s-dt"></div></div>
+  <div class="row"><label>Max steps</label>
+    <div class="stepper" id="s-nsteps"></div></div>
+
+  <div class="btn-row">
+    <button class="btn primary" onclick="simulate()">▶ Run Simulation</button>
+    <button class="btn" id="abtn" onclick="animToggle()">◌ Animate</button>
+  </div>
+  <div id="info"></div>
+</div><!-- /.sidebar -->
+
+</div><!-- /.app -->
+
+<!-- Circular orbit overlay -->
+<div id="circ-overlay" onclick="if(event.target===this)closeCirc()">
+  <div class="circ-box">
+    <h3>⊙ Circular Orbit Parameters</h3>
+    <p>For a stable circular orbit at r₀ in Schwarzschild spacetime, the required values are:</p>
+    <div class="circ-val" id="circ-result">—</div>
+    <p id="circ-warn" style="font-size:10.5px;color:var(--magenta2);display:none"></p>
+    <div class="circ-btns">
+      <button class="btn primary" onclick="applyCircular()">Apply to simulation</button>
+      <button class="btn" onclick="closeCirc()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+//  STEPPER WIDGET FACTORY
+
+/*
+  cfg = { id, min, max, step, value, decimals }
+  Creates a stepper (–  [input]  +) and registers it.
+  Reading value: gv(id)
+*/
+const _steppers={};
+function makeStepper(containerId, cfg){
+  const {id,min,max,step,value,decimals=2}=cfg;
+  const wrap=document.getElementById(containerId);
+  wrap.innerHTML=`
+    <button type="button" onclick="stepAdj('${id}',-1)">−</button>
+    <input type="number" id="${id}" value="${value}" min="${min}" max="${max}" step="${step}"
+      onchange="clampStepper('${id}',${min},${max},${decimals});updateLive()">
+    <button type="button" onclick="stepAdj('${id}',1)">+</button>`;
+  _steppers[id]={min,max,step,decimals};
+}
+function stepAdj(id,dir){
+  const cfg=_steppers[id];if(!cfg)return;
+  const el=document.getElementById(id);
+  let v=parseFloat(el.value)+(dir*cfg.step);
+  v=Math.max(cfg.min,Math.min(cfg.max,parseFloat(v.toFixed(10))));
+  el.value=v.toFixed(cfg.decimals);
+  updateLive();
+}
+function clampStepper(id,mn,mx,dec){
+  const el=document.getElementById(id);
+  let v=parseFloat(el.value);
+  if(isNaN(v))v=mn;
+  v=Math.max(mn,Math.min(mx,v));
+  el.value=v.toFixed(dec);
+}
+function gv(id){return parseFloat(document.getElementById(id).value);}
+function gs(id){return document.getElementById(id).value;}
+
+//  INITIALISE STEPPERS
+
+// Read URL params for preset values
+function urlParam(k,def){
+  const p=new URLSearchParams(location.search);
+  return p.has(k)?parseFloat(p.get(k)):def;
+}
+function urlParamS(k,def){
+  const p=new URLSearchParams(location.search);
+  return p.has(k)?p.get(k):def;
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  makeStepper('s-rs',  {id:'rs',   min:.3,  max:4,    step:.1,  value:urlParam('rs',1.0),   decimals:2});
+  makeStepper('s-rsh', {id:'rsh',  min:1.5, max:12,   step:.25, value:urlParam('rsh',4.0),  decimals:2});
+  makeStepper('s-mshell',{id:'mshell',min:0,max:1,    step:.05, value:urlParam('mshell',0), decimals:2});
+  makeStepper('s-mfrac',{id:'mfrac',min:0,  max:1,    step:.05, value:urlParam('mfrac',0),  decimals:2});
+  makeStepper('s-E',   {id:'E',    min:.92, max:3,    step:.02, value:urlParam('E',1.0),    decimals:3});
+  makeStepper('s-L',   {id:'L',    min:0,   max:15,   step:.1,  value:urlParam('L',3.46),   decimals:2});
+  makeStepper('s-b',   {id:'b',    min:.5,  max:18,   step:.1,  value:urlParam('b',5.2),    decimals:2});
+  makeStepper('s-nphot',{id:'nphot',min:0,  max:20,   step:1,   value:urlParam('nphot',0),  decimals:0});
+  makeStepper('s-dbphot',{id:'dbphot',min:.05,max:4,  step:.05, value:urlParam('dbphot',.4),decimals:2});
+  makeStepper('s-r0',  {id:'r0',   min:1.5, max:22,   step:.5,  value:urlParam('r0',10),    decimals:1});
+  makeStepper('s-phi0',{id:'phi0', min:0,   max:355,  step:5,   value:urlParam('phi0',180), decimals:0});
+  makeStepper('s-theta',{id:'theta',min:0,  max:90,   step:5,   value:urlParam('theta',0),  decimals:0});
+  makeStepper('s-ntracks',{id:'ntracks',min:1,max:5,  step:1,   value:urlParam('ntracks',1),decimals:0});
+  makeStepper('s-dL',  {id:'dL',   min:.1,  max:3,    step:.1,  value:urlParam('dL',1.0),   decimals:2});
+  makeStepper('s-dt',  {id:'dt',   min:.001,max:.05,  step:.001,value:urlParam('dt',.01),   decimals:3});
+  makeStepper('s-nsteps',{id:'nsteps',min:500,max:20000,step:200,value:urlParam('nsteps',5000),decimals:0});
+  makeStepper('s-tickdt',{id:'tickdt',min:.5,max:20,  step:.5,  value:urlParam('tickdt',5), decimals:1});
+
+  // restore selects from URL
+  ['interior','rsign','nsign','shownull','showticks'].forEach(k=>{
+    const v=urlParamS(k,null);
+    if(v){const el=document.getElementById(k);if(el)el.value=v;}
+  });
+
+  updateLive();
+  simulate();
+});
+
+//  PHYSICS
+
+// ══════════════════════════════════════════════════════════════════════
+// PHYSICS: Effective Schwarzschild radius rsEff(r)
+// ══════════════════════════════════════════════════════════════════════
+// The Schwarzschild metric takes the form: ds² = -(1 - r_s/r)c²dt² + (1-r_s/r)⁻¹dr² + r²dΩ²
+// The metric factor f(r) = 1 - r_s/r depends on where the particle is:
+//   • outside (r ≥ R):  full mass M acts → r_s = 2GM/c² (standard Schwarzschild)
+//   • inside, flat (Minkowski): shell theorem — a spherical shell creates no interior
+//     gravitational field → effective r_s = 0, spacetime is flat inside
+//   • inside, with mass: uniform density → enclosed mass grows as r³
+//     → rs_eff(r) = r_s · (M_in/M) · (r/R)³
+function rsEff(r, rs, rsh, mfrac, mshell, it){
+  // Outside shell (r ≥ R): use full Schwarzschild radius — full mass acts on the particle
+  if(r >= rsh) return rs;
+  // Inside shell, flat interior (Minkowski): shell theorem → no gravitational field inside
+  if(it === 'flat') return 0;
+  // Inside shell, uniform density: Gauss's theorem for gravity
+  // enclosed mass M(r) = M_total · (r/R)³, so rs_eff = rs · mfrac · (r/R)³
+  return rs * mfrac * Math.pow(r / rsh, 3);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PHYSICS: Effective potential for MASSIVE PARTICLES (timelike geodesic)
+// ══════════════════════════════════════════════════════════════════════
+// Schwarzschild geodesic equation in the radial direction gives:
+//   (dr/dτ)² = E² − 2·V_eff(r)
+// where V_eff(r) = (1/2)·f(r)·(1 + L²/r²)
+//   f(r) = 1 - r_s/r  ← metric factor (gravitational well deepens near r_s)
+//   L²/r²            ← centrifugal barrier term
+//   Product f·(1+L²/r²) creates a barrier: at small r, f→0 dominates (horizon pull),
+//   at large r, L²/r²→0 dominates (flat). Maximum of V_eff marks the unstable circular orbit.
+// Where E²/2 = V_eff → ṙ = 0: these are the radial turning points (periapsis and apoapsis)
+function vtm(r, rs, L, rsh, mfrac, mshell, it){
+  const e = rsEff(r, rs, rsh, mfrac, mshell, it); // effective Schwarzschild radius based on position
+  const f = Math.max(1e-8, 1 - e / r);            // metric factor f(r), obmedzený zdola (predíde deleniu nulou)
+  return 0.5 * f * (1 + L * L / (r * r));         // V_eff(r) = (1/2)·f(r)·(1 + L²/r²)
+}
+// ══════════════════════════════════════════════════════════════════════
+// PHYSICS: Effective potential for PHOTONS (null geodesic)
+// ══════════════════════════════════════════════════════════════════════
+// For photons ds²=0 (null geodesic). Radial equation of motion:
+//   (dr/dλ)² = 1 − b²·f(r)/r²
+// so V_null(r) = (1/2)·b²·f(r)/r²
+//   b = L/E is the photon impact parameter [units of r_s]
+//   Maximum of V_null occurs at the photon sphere r = 1.5·r_s
+//   If b < b_crit = (3√3/2)·r_s → photon is captured by the black hole
+function vnull(r, rs, b, rsh, mfrac, mshell, it){
+  const e = rsEff(r, rs, rsh, mfrac, mshell, it); // effective r_s at current position (depends on position relative to shell)
+  const f = Math.max(1e-8, 1 - e / r);            // metric factor f(r)
+  return 0.5 * b * b * f / (r * r);               // V_null(r) = b²·f(r)/(2r²) — photon potential barrier
+}
+// ══════════════════════════════════════════════════════════════════════
+// NUMERICS: Central difference — derivative of the effective potential
+// ══════════════════════════════════════════════════════════════════════
+// dV/dr = (V(r+h) - V(r-h)) / (2h) — numerical derivative approximation (error ~ h²)
+// Required to compute radial force: F_r = -dV_eff/dr (drives the pr equation of motion)
+// h is adaptive: max(r·10⁻⁵, 10⁻⁷) to avoid precision loss near r=0
+function dvdr(fn, r, ...a){
+  const h = Math.max(r * 1e-5, 1e-7);                      // adaptive step size for derivative
+  return (fn(r + h, ...a) - fn(r - h, ...a)) / (2 * h);   // central difference formula
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PHYSICS + NUMERICS: Equations of motion for MASSIVE PARTICLES (4-vector of derivatives)
+// ══════════════════════════════════════════════════════════════════════
+// Schwarzschild geodesic equations (geometric units c=G=1):
+//   ṙ  = pr               ← radial velocity (derivative of r w.r.t. proper time τ)
+//   φ̇  = L/r²             ← angular velocity (conserved angular momentum — Killing vector)
+//   ṗr = -dV_eff/dr        ← radial "force" — potential gradient changes radial momentum
+//   ṫ  = E/f(r)            ← coordinate time rate (gravitational time dilation: diverges near r_s)
+// State: s = [r, φ, pr, t]  → returns [ṙ, φ̇, ṗr, ṫ]
+function dTM(s, rs, E, L, rsh, mfrac, mshell, it){
+  const [r, phi, pr] = s;         // unpack state: radial coordinate r, angle φ, radial momentum pr
+  if(r < 0.05) return [0, 0, 0, 0]; // stop integration too close to singularity (r→0 is numerically unsafe)
+  const e = rsEff(r, rs, rsh, mfrac, mshell, it); // effective r_s depending on location (outside/inside shell)
+  const fr = Math.max(1e-8, 1 - e / r);           // metric factor f(r) = 1 - r_s_eff/r
+  return [
+    pr,                                                    // ṙ = pr — radial velocity
+    L / (r * r),                                          // φ̇ = L/r² — conservation of angular momentum (Killing vector)
+    -dvdr(vtm, r, rs, L, rsh, mfrac, mshell, it),        // ṗr = -dV/dr — effective gravitational + centrifugal force
+    E / fr                                                 // ṫ = E/f(r) — coordinate time rate (gravitational time dilation)
+  ];
+}
+// ══════════════════════════════════════════════════════════════════════
+// PHYSICS: Equations of motion for PHOTONS (null geodesic)
+// ══════════════════════════════════════════════════════════════════════
+// Analogous to dTM, but for photons:
+//   • angular momentum L is replaced by impact parameter b = L/E (photon constant of motion)
+//   • φ̇ = b/r² (photon angular velocity)
+//   • ṫ = 1/f(r) — coordinate time (in GR, photons "slow down" near mass as seen by distant observers)
+//   • V_null barrier peaks at photon sphere r = 1.5r_s
+function dNull(s, rs, b, rsh, mfrac, mshell, it){
+  const [r, phi, pr] = s;          // state: r, φ, radial momentum of photon
+  if(r < 0.05) return [0, 0, 0, 0]; // guard against numerical singularity at r→0
+  const e = rsEff(r, rs, rsh, mfrac, mshell, it); // effective r_s at current position
+  const fr = Math.max(1e-8, 1 - e / r);           // metric factor f(r)
+  return [
+    pr,                                                     // ṙ = pr — photon radial velocity
+    b / (r * r),                                           // φ̇ = b/r² — angular motion (from conserved b = L/E)
+    -dvdr(vnull, r, rs, b, rsh, mfrac, mshell, it),       // ṗr = -dV_null/dr — gravitational deflection of photon
+    1 / fr                                                  // ṫ = 1/f(r) — coordinate time for photon
+  ];
+}
+// ══════════════════════════════════════════════════════════════════════
+// NUMERICS: 4th-order Runge-Kutta (RK4) — core of numerical integration
+// ══════════════════════════════════════════════════════════════════════
+// RK4 is a method for numerically solving systems of ordinary differential equations (ODEs).
+// It evaluates derivatives fn(s) at 4 points within a single step dτ and combines them
+// as a weighted average. Local truncation error ~ O(dτ⁵), global ~ O(dτ⁴).
+// Formula: s_new = s + (dτ/6)·(k1 + 2·k2 + 2·k3 + k4)
+//   k1 = fn(s)             ← slope at start of step
+//   k2 = fn(s + dτ/2·k1)  ← slope at midpoint (first estimate)
+//   k3 = fn(s + dτ/2·k2)  ← slope at midpoint (second, corrected estimate)
+//   k4 = fn(s + dτ·k3)    ← slope at end of step
+// Each fn call computes [ṙ, φ̇, ṗr, ṫ] for the given state vector.
+function rk4(s, dt, fn){
+  const k1 = fn(s);                                      // derivatives at current state s
+  const s2 = s.map((v, i) => v + .5 * dt * k1[i]);      // predicted midpoint state (Euler half-step)
+  const k2 = fn(s2);                                     // derivatives at midpoint (first estimate)
+  const s3 = s.map((v, i) => v + .5 * dt * k2[i]);      // corrected midpoint state
+  const k3 = fn(s3);                                     // derivatives at corrected midpoint (second, more accurate estimate)
+  const s4 = s.map((v, i) => v + dt * k3[i]);            // predicted state at end of step
+  const k4 = fn(s4);                                     // derivatives at end of step
+  return s.map((v, i) => v + dt / 6 * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i])); // RK4 weighted combination: (1/6)(k1 + 2k2 + 2k3 + k4)
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// MAIN INTEGRATION FUNCTION: integrate()
+// ══════════════════════════════════════════════════════════════════════
+// Táto funkcia vykonáva celú numerickú simuláciu jednej trajektórie (geodéziky).
+// Vstupné parametre:
+//   rs      — Schwarzschild radius [geometric units]
+//   rsh     — shell radius R
+//   r0      — initial radial position of particle/photon
+//   ph0d    — initial angle φ₀ in degrees
+//   E       — energy (photons E=1; massive particles E = conserved constant of motion)
+//   L       — angular momentum (for photons L = impact parameter b)
+//   isNull  — true for photon (null geodesic), false for massive particle (timelike geodesic)
+//   sgns    — initial radial direction: -1 = inward, +1 = outward, 0 = tangential
+//   dt      — integration step size (proper time Δτ or affine parameter for photons)
+//   nsteps  — maximum number of steps (stops if particle neither escapes nor is captured)
+//   mfrac, mshell, it — interior gravity parameters (shell interior configuration)
+//
+// Returns: object with trajectory points, times, periapsis, apoapsis, bending angle, etc.
+function integrate(rs, rsh, r0, ph0d, E, L, isNull, sgns, dt, nsteps, mfrac, mshell, it){
+  const phi0 = ph0d * Math.PI / 180;  // convert initial angle from degrees to radians
+
+  // Compute initial effective potential V0 at starting position r0
+  const V0 = isNull ? vnull(r0, rs, L, rsh, mfrac, mshell, it)  // potential for photon
+                    : vtm(r0, rs, L, rsh, mfrac, mshell, it);    // potential for massive particle
+
+  // Radial kinetic energy at start: E²/2 - V0 = ṙ²/2 → if negative, particle is in forbidden zone
+  const E2h = isNull ? 0.5 : E * E * 0.5; // reference value E²/2 (for photon E=1, so E²/2=0.5)
+  const ke = E2h - V0;                    // radial kinetic energy at r0
+
+  const sgn = parseInt(sgns);  // direction of initial radial motion: -1=inward, +1=outward, 0=tangential
+  // Initial radial momentum pr0: if ke>0 (allowed region), pr = ±√(2·ke); else small nudge
+  const pr0 = sgn === 0 ? 0 : sgn * (ke > 0 ? Math.sqrt(2 * ke) : 0.001);
+
+  // Initial integration state vector: [r, φ, pr, t_coord]
+  let state = [r0, phi0, pr0, 0];
+
+  // Storage arrays for trajectory output
+  const pts = [];   // 2D Cartesian points [x, y] for rendering (x = r·cos φ, y = r·sin φ)
+  const taus = [];  // proper time τ at each step (clock on the particle)
+  const ts = [];    // coordinate time t (distant observer's clock; diverges near r_s)
+
+  // Tracking variables
+  let cap = false, esc = false;   // captured by black hole / escaped to infinity
+  let maxDE = 0;                  // maximum relative energy error (integration quality indicator)
+  let rmin = r0, rmax = r0;       // periapsis and apoapsis
+
+  // Select equations of motion based on particle type
+  const fn = isNull
+    ? s => dNull(s, rs, L, rsh, mfrac, mshell, it)  // photon: null geodesic
+    : s => dTM(s, rs, E, L, rsh, mfrac, mshell, it); // massive particle: timelike geodesic
+
+  // ── MAIN INTEGRATION LOOP ──
+  // Each step: (1) check capture/escape conditions, (2) store point, (3) advance via RK4, (4) check energy conservation
+  for(let i = 0; i < nsteps; i++){
+    const [r, phi, pr, t] = state;  // unpack current integration state
+    const eR = rsEff(r, rs, rsh, mfrac, mshell, it); // effective r_s at current position na aktuálnej pozícii
+
+    // CAPTURE CONDITION: particle fell too close to the effective horizon or into singularity
+    // r ≤ 0.55·r_s_eff (55% of horizon) → numerically "past horizon"; or r < 0.08 (singularity)
+    if(r <= eR * 0.55 || r < 0.08){ cap = true; break; }
+
+    // ESCAPE CONDITION: particle reached r > 80 → treat as escaped to infinity
+    if(r > 80){ esc = true; break; }
+
+    // Store current position as Cartesian [x, y] coordinates (for 2D canvas rendering)
+    pts.push([r * Math.cos(phi), r * Math.sin(phi)]);
+    taus.push(i * dt);  // proper time τ = i·dτ (particle's own clock)
+    ts.push(t);          // coordinate time t from state (distant observer's clock; diverges near r_s)
+    if(r < rmin) rmin = r;  // track minimum radius (periapsis)
+    if(r > rmax) rmax = r;  // track maximum radius (apoapsis)
+
+    const prevR = r;
+    state = rk4(state, dt, fn);  // ← ADVANCE ONE RK4 STEP (core of the simulation)
+    const newR = state[0];
+
+    // Note on shell surface crossing:
+    // Physics changes at r ≈ rsh (different rs_eff inside vs outside), but rsEff()
+    // handles this continuously — no artificial reflection needed; V_eff is smooth across R.
+    if(!isNull && Math.abs(prevR - rsh) < dt * 3 && Math.abs(newR - rsh) < dt * 3){
+      // Integration continues unmodified — equations handle the crossing via V_eff correctly.
+    }
+
+    // ENERGY CONSERVATION CHECK: total energy = V_eff + pr²/2 must remain constant
+    // ΔE/E = |V_eff + pr²/2 - E²/2| / |E²/2| — relative deviation from conservation
+    // If ΔE/E is large (>10⁻³), dτ step is too coarse → reduce in integration settings
+    const Vn = isNull
+      ? vnull(state[0], rs, L, rsh, mfrac, mshell, it)   // potential at new position (photon)
+      : vtm(state[0], rs, L, rsh, mfrac, mshell, it);    // potential at new position (massive particle)
+    const ref = isNull ? 0.5 : E * E * 0.5;              // reference value E²/2
+    const de = Math.abs(Vn + 0.5 * state[2] * state[2] - ref) / Math.max(1e-10, Math.abs(ref)); // relative error
+    if(de > maxDE) maxDE = de;  // record peak energy error across entire trajectory
+  }
+
+  const tau_t = taus.length > 1 ? taus[taus.length - 1] : 0;
+  const t_t   = ts.length   > 1 ? ts[ts.length - 1] - ts[0] : 0;
+
+  // ── BENDING ANGLE CALCULATION (gravitational lensing) ──
+  // Compares the direction of motion at the start and end of the trajectory via dot product.
+  // Physics: Einstein predicted 1.75" of light deflection at the Sun's limb (confirmed 1919).
+  // Here we measure the total bending angle α in degrees between the initial and final direction.
+  // Algorithm: take the motion vector over the first 5 steps (v0) and last 5 steps (v1),
+  // compute the angle between them via arccos of dot product / product of magnitudes.
+  let alpha = 0;
+  if(pts.length > 4){
+    const sm = Math.min(5, Math.floor(pts.length / 4)), n = pts.length;
+    const v0 = [pts[sm][0] - pts[0][0], pts[sm][1] - pts[0][1]];       // initial direction vector
+    const v1 = [pts[n-1][0] - pts[n-1-sm][0], pts[n-1][1] - pts[n-1-sm][1]]; // final direction vector
+    const d  = v0[0]*v1[0] + v0[1]*v1[1];                              // dot product v0·v1
+    const m  = Math.sqrt(v0[0]**2+v0[1]**2) * Math.sqrt(v1[0]**2+v1[1]**2); // |v0|·|v1|
+    if(m > 0) alpha = Math.acos(Math.max(-1, Math.min(1, d/m))) * 180 / Math.PI; // α = arccos(cosα) in degrees
+  }
+  return {pts, taus, ts, captured:cap, escaped:esc, maxDE, rmin, rmax, alpha, tau_total:tau_t, t_total:t_t};
+}
+
+//  CIRCULAR ORBIT SNAP
+
+let _circData = null;
+function snapCircular(){
+  const rs = gv('rs'), r0 = gv('r0'), rsh = gv('rsh');
+  const isco = 3 * rs;
+  // ── PHYSICS OF CIRCULAR ORBITS IN SCHWARZSCHILD SPACETIME ──
+  // A circular orbit requires ṙ = r̈ = 0, i.e. dV_eff/dr = 0 and E²/2 = V_eff(r).
+  // Solving these conditions in the Schwarzschild metric yields:
+  //   L² = r_s · r² / (2r − 3r_s)       ← required angular momentum for circular motion
+  //   E² = (1 − r_s/r)² / (1 − 3r_s/(2r)) ← required energy for circular motion
+  // ISCO = 3·r_s: denominator goes ≤ 0 for smaller r → no stable circular orbit possible
+  const r = r0;
+  const denom = 2*r - 3*rs;    // denominator for L: negative/zero means no circular orbit exists
+  const edenom = 1 - 3*rs/(2*r); // denominator for E: negative means below ISCO
+  const el = document.getElementById('circ-result');
+  const warn = document.getElementById('circ-warn');
+  warn.style.display = 'none';
+  if(denom <= 0 || edenom <= 0){
+    el.innerHTML = `r₀ = ${r.toFixed(2)} is inside ISCO (${isco.toFixed(2)})<br>No stable circular orbit possible.`;
+    warn.textContent = 'Move r₀ to at least 3r_s for a stable circular orbit.';
+    warn.style.display = 'block';
+    _circData = null;
+  } else {
+    const L2 = rs * r * r / denom;
+    const E2 = Math.pow(1 - rs/r, 2) / edenom;
+    const Lc = Math.sqrt(L2), Ec = Math.sqrt(E2);
+    _circData = {L:Lc, E:Ec};
+    const stable = r >= isco;
+    el.innerHTML =
+      `r₀ = ${r.toFixed(3)}<br>` +
+      `L = <b>${Lc.toFixed(4)}</b><br>` +
+      `E = <b>${Ec.toFixed(4)}</b><br>` +
+      `ISCO = ${isco.toFixed(3)}&nbsp;&nbsp;` +
+      `<span style="color:${stable?'var(--tag-ok, #1aaf82)':'var(--magenta2)'}">` +
+      `${stable ? '✓ Stable' : '⚠ Unstable (r < ISCO)'}</span>`;
+    if(!stable){
+      warn.textContent = 'This orbit is unstable — slight perturbations will cause it to spiral in or out.';
+      warn.style.display = 'block';
+    }
+    if(r < rsh){
+      warn.textContent = (warn.textContent ? warn.textContent + ' ' : '') + 'Note: r₀ is inside the shell R.';
+      warn.style.display = 'block';
+    }
+  }
+  document.getElementById('circ-overlay').classList.add('show');
+}
+function applyCircular(){
+  if(!_circData) return;
+  document.getElementById('L').value = _circData.L.toFixed(2);
+  document.getElementById('E').value = _circData.E.toFixed(3);
+  document.getElementById('rsign').value = '0';
+  closeCirc();
+  updateLive();
+  simulate();
+}
+function closeCirc(){
+  document.getElementById('circ-overlay').classList.remove('show');
+}
+
+//  URL SHARING
+
+function shareURL(e){
+  e.preventDefault();
+  const p = new URLSearchParams();
+  ['rs','rsh','mshell','mfrac','E','L','b','nphot','dbphot','r0','phi0','theta','ntracks','dL','dt','nsteps','tickdt']
+    .forEach(k => p.set(k, document.getElementById(k).value));
+  ['interior','rsign','nsign','shownull','showticks']
+    .forEach(k => p.set(k, document.getElementById(k).value));
+  const url = location.origin + location.pathname + '?' + p.toString();
+  navigator.clipboard.writeText(url).then(()=>{
+    const a = document.getElementById('share-link');
+    a.textContent = '✓ copied!';
+    setTimeout(()=>{ a.textContent = '⬡ share config'; }, 2000);
+  });
+}
+
+//  CANVAS SETUP
+
+const cv  = document.getElementById('cv'),  ctx  = cv.getContext('2d');
+const cv2 = document.getElementById('cv2'), ctx2 = cv2.getContext('2d');
+const cv3 = document.getElementById('cv3d'),ctx3 = cv3.getContext('2d');
+const W=520, H=320, CX=W/2, CY=H/2;
+const W2=520, H2=90;
+const W3=520, H3=260;
+
+// Track colors: teal/blue family + magenta accent
+const COLS = ['#0fc9d4','#037c82','#0a5fa8','#3b9ef5','#8ed8e0'];
+const CNULL = '#c21954';
+const CNULL_BUNDLE = ['#c21954','#e03070','#9b144b','#ff6090','#7a0f38','#f0a0c0','#d04070','#e8507a','#b02050','#ff80a0',
+                      '#c21954','#e03070','#9b144b','#ff6090','#7a0f38','#f0a0c0','#d04070','#e8507a','#b02050','#ff80a0'];
+
+function toS(x, y, sc){ return [CX + x*sc, CY - y*sc]; }
+
+let animId = null, animOn = false, lastTracks = [], animStep = 0;
+
+//  ANIMATE TOGGLE
+
+function animToggle(){
+  if(animOn){
+    animOn = false;
+    if(animId) cancelAnimationFrame(animId);
+    document.getElementById('abtn').textContent = '◌ Animate';
+    return;
+  }
+  simulate(true);
+}
+
+//  DRAW BACKGROUND 2D
+
+function drawBg(rs, rsh, sc){
+  ctx.clearRect(0, 0, W, H);
+
+  // subtle grid
+  ctx.strokeStyle = 'rgba(3,124,130,0.05)';
+  ctx.lineWidth = 0.5;
+  for(let r=2; r<22; r+=2){
+    ctx.beginPath(); ctx.arc(CX, CY, r*sc, 0, 2*Math.PI); ctx.stroke();
+  }
+
+  // ISCO
+  const isco = 3*rs;
+  if(isco*sc > 3){
+    ctx.beginPath(); ctx.arc(CX, CY, isco*sc, 0, 2*Math.PI);
+    ctx.setLineDash([4,4]); ctx.strokeStyle = 'rgba(186,117,23,0.4)'; ctx.lineWidth = 0.8; ctx.stroke(); ctx.setLineDash([]);
+  }
+  // Photon sphere
+  const ps = 1.5*rs;
+  if(ps*sc > 2){
+    ctx.beginPath(); ctx.arc(CX, CY, ps*sc, 0, 2*Math.PI);
+    ctx.setLineDash([2,5]); ctx.strokeStyle = 'rgba(155,95,191,0.4)'; ctx.lineWidth = 0.8; ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Shell R
+  ctx.beginPath(); ctx.arc(CX, CY, rsh*sc, 0, 2*Math.PI);
+  ctx.fillStyle = 'rgba(3,124,130,0.04)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(3,124,130,0.5)'; ctx.lineWidth = 1.2; ctx.stroke();
+
+  // Schwarzschild radius (filled red-ish)
+  ctx.beginPath(); ctx.arc(CX, CY, rs*sc, 0, 2*Math.PI);
+  ctx.fillStyle = 'rgba(194,25,84,0.55)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(194,25,84,0.8)'; ctx.lineWidth = 1; ctx.stroke();
+
+  // labels
+  ctx.fillStyle = 'rgba(212,232,240,0.3)';
+  ctx.font = '9px "Exo 2",sans-serif';
+  ctx.fillText('r_s', CX + rs*sc + 3, CY - 2);
+  ctx.fillText('R', CX + rsh*sc + 3, CY - 2);
+  if(isco*sc > 3) ctx.fillText('ISCO', CX + isco*sc + 3, CY - 2);
+}
+
+//  DRAW TRACKS 2D (with proper-time ticks)
+
+function drawTracks(tracks, sc, upto, showTicks, tickDt){
+  tracks.forEach(t => {
+    const pts = t.res.pts;
+    const n = upto === undefined ? pts.length : Math.min(upto, pts.length);
+    if(n < 2) return;
+
+    // Draw path
+    ctx.beginPath();
+    const [x0, y0] = toS(pts[0][0], pts[0][1], sc);
+    ctx.moveTo(x0, y0);
+    for(let i = 1; i < n; i++){
+      const [x, y] = toS(pts[i][0], pts[i][1], sc);
+      ctx.lineTo(x, y);
+    }
+    if(t.isNull) ctx.setLineDash([5, 3]);
+    ctx.strokeStyle = t.col;
+    ctx.lineWidth = t.isNull ? 1.2 : 1.8;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Start marker
+    ctx.beginPath();
+    ctx.arc(x0, y0, 3.5, 0, 2*Math.PI);
+    ctx.fillStyle = t.col; ctx.fill();
+
+    // Proper-time ticks
+    if(showTicks && !t.isNull && t.res.taus.length > 0){
+      let nextTick = tickDt;
+      ctx.fillStyle = t.col;
+      for(let i = 1; i < n; i++){
+        const tau = t.res.taus[i];
+        if(tau >= nextTick){
+          const [tx, ty] = toS(pts[i][0], pts[i][1], sc);
+          ctx.beginPath();
+          ctx.arc(tx, ty, 2, 0, 2*Math.PI);
+          ctx.fill();
+          nextTick += tickDt;
+        }
+      }
+    }
+  });
+}
+
+//  DRAW Veff  (with animated particle dot)
+
+function drawVeff(tracks, rs, rsh, E, mfrac, mshell, it, animStepVal){
+  ctx2.clearRect(0, 0, W2, H2);
+  const pl=44, pr2=14, pt=8, pb=26, pw=W2-pl-pr2, ph=H2-pt-pb;
+  const rm = Math.max(.15, rs*.5);
+  const rx2 = Math.max(gv('r0')*1.3, rsh*1.5, 12);
+  const N = 460;
+  let vmin = Infinity, vmax = -Infinity;
+  tracks.forEach(t => {
+    for(let i = 0; i < N; i++){
+      const r = rm + (rx2 - rm) * i / (N-1);
+      const v = t.isNull ? vnull(r, rs, t.b||t.L, rsh, mfrac, mshell, it)
+                         : vtm(r, rs, t.L, rsh, mfrac, mshell, it);
+      if(isFinite(v) && v < 25){ if(v < vmin) vmin = v; if(v > vmax) vmax = v; }
+    }
+  });
+  vmin = Math.max(0, vmin - .05);
+  vmax = Math.min(vmax + .25, 5);
+  const rxf = r => pl + (r - rm) / (rx2 - rm) * pw;
+  const vyf = v => pt + ph - (v - vmin) / (vmax - vmin) * ph;
+
+  // Grid lines
+  ctx2.strokeStyle = 'rgba(3,124,130,0.08)'; ctx2.lineWidth = .5;
+  [.25, .5, .75].forEach(f => {
+    const y = pt + ph*f;
+    ctx2.beginPath(); ctx2.moveTo(pl, y); ctx2.lineTo(pl+pw, y); ctx2.stroke();
+  });
+
+  // Shell and ISCO markers in Veff
+  const rx_rsh = rxf(rsh);
+  if(rx_rsh >= pl && rx_rsh <= pl+pw){
+    ctx2.beginPath(); ctx2.moveTo(rx_rsh, pt); ctx2.lineTo(rx_rsh, pt+ph);
+    ctx2.strokeStyle = 'rgba(3,124,130,0.3)'; ctx2.lineWidth = .8;
+    ctx2.setLineDash([3,3]); ctx2.stroke(); ctx2.setLineDash([]);
+  }
+
+  // Potential curves
+  tracks.forEach(t => {
+    ctx2.beginPath();
+    let first = true;
+    for(let i = 0; i < N; i++){
+      const r = rm + (rx2 - rm) * i / (N-1);
+      const v = t.isNull ? vnull(r, rs, t.b||t.L, rsh, mfrac, mshell, it)
+                         : vtm(r, rs, t.L, rsh, mfrac, mshell, it);
+      if(!isFinite(v) || v > vmax*1.6) continue;
+      const x = rxf(r), y = vyf(Math.min(v, vmax));
+      first ? (ctx2.moveTo(x, y), first = false) : ctx2.lineTo(x, y);
+    }
+    if(t.isNull) ctx2.setLineDash([4, 3]);
+    ctx2.strokeStyle = t.col; ctx2.lineWidth = 1.5; ctx2.stroke(); ctx2.setLineDash([]);
+  });
+
+  // E²/2 line
+  const Eh = E * E * .5;
+  if(Eh >= vmin && Eh <= vmax){
+    const ye = vyf(Eh);
+    ctx2.beginPath(); ctx2.moveTo(pl, ye); ctx2.lineTo(pl+pw, ye);
+    ctx2.setLineDash([5, 4]); ctx2.strokeStyle = 'rgba(212,232,240,0.32)';
+    ctx2.lineWidth = 1; ctx2.stroke(); ctx2.setLineDash([]);
+    ctx2.fillStyle = 'rgba(212,232,240,0.4)';
+    ctx2.font = '9px "JetBrains Mono",monospace';
+    ctx2.fillText('E²/2', pl+2, ye-2);
+  }
+
+  // Animated particle dot on potential curve
+  if(animStepVal !== undefined && lastTracks.length > 0){
+    const t0 = lastTracks[0];
+    const idx = Math.min(animStepVal, t0.res.pts.length - 1);
+    if(idx >= 0){
+      const [px2, py2] = t0.res.pts[idx];
+      const r = Math.sqrt(px2*px2 + py2*py2);
+      const v = t0.isNull ? vnull(r, rs, t0.b||t0.L, rsh, mfrac, mshell, it)
+                          : vtm(r, rs, t0.L, rsh, mfrac, mshell, it);
+      if(isFinite(v) && r >= rm && r <= rx2 && v >= vmin && v <= vmax){
+        const dx = rxf(r), dy = vyf(v);
+        ctx2.beginPath(); ctx2.arc(dx, dy, 4, 0, 2*Math.PI);
+        ctx2.fillStyle = t0.col;
+        ctx2.shadowColor = t0.col; ctx2.shadowBlur = 6;
+        ctx2.fill();
+        ctx2.shadowBlur = 0;
+      }
+    }
+  }
+
+  // Axes
+  ctx2.strokeStyle = 'rgba(255,255,255,0.12)'; ctx2.lineWidth = .5;
+  ctx2.beginPath(); ctx2.moveTo(pl, pt); ctx2.lineTo(pl, pt+ph); ctx2.lineTo(pl+pw, pt+ph); ctx2.stroke();
+  ctx2.fillStyle = 'rgba(212,232,240,0.28)'; ctx2.font = '9px "Exo 2",sans-serif';
+  ctx2.fillText('r →', pl+pw-14, pt+ph+14);
+  ctx2.fillText('V', 4, pt+10);
+}
+
+//  3D VISUALISATION
+
+let rot3X = 0.4, rot3Y = -0.5, rot3Zoom = 1.0;
+let drag3 = false, drag3Last = [0,0];
+
+cv3.addEventListener('mousedown', e => { drag3 = true; drag3Last = [e.clientX, e.clientY]; });
+cv3.addEventListener('mousemove', e => {
+  if(!drag3) return;
+  rot3Y += (e.clientX - drag3Last[0]) * 0.008;
+  rot3X += (e.clientY - drag3Last[1]) * 0.008;
+  drag3Last = [e.clientX, e.clientY];
+  draw3D(lastTracks);
+});
+cv3.addEventListener('mouseup', () => { drag3 = false; });
+cv3.addEventListener('mouseleave', () => { drag3 = false; });
+cv3.addEventListener('wheel', e => {
+  e.preventDefault();
+  rot3Zoom *= (e.deltaY > 0 ? 0.93 : 1.07);
+  rot3Zoom = Math.max(0.3, Math.min(4, rot3Zoom));
+  draw3D(lastTracks);
+}, {passive:false});
+
+// ══════════════════════════════════════════════════════════════════════
+// GRAPHICS: 3D projection (perspective camera)
+// ══════════════════════════════════════════════════════════════════════
+// Transforms a 3D point (x,y,z) onto the 2D canvas pixel using:
+// 1) Rotation around the Y axis by rot3Y (horizontal mouse drag)
+// 2) Rotation around the X axis by rot3X (vertical mouse drag)
+// 3) Perspective projection: s = fov/(fov+z) — distant objects appear smaller
+//    (approximates a pinhole camera with focal length fov)
+// rot3Zoom scales fov: zooms in/out (mouse scroll wheel)
+function project3D(x, y, z){
+  // Rotate around Y axis (horizontal mouse movement):
+  const cy = Math.cos(rot3Y), sy = Math.sin(rot3Y);
+  const cx2 = Math.cos(rot3X), sx = Math.sin(rot3X);
+  let x1 = cy*x + sy*z, z1 = -sy*x + cy*z;   // new x, z after rotation around Y
+  let y1 = cx2*y - sx*z1, z2 = sx*y + cx2*z1; // new y, z after rotation around X
+  // Perspective projection: s = focal_length / (focal_length + depth)
+  const fov = 600 * rot3Zoom;                  // effective focal length [pixels]
+  const s = fov / (fov + z2 + 0.01);           // perspective scale factor (larger depth → smaller object)
+  return [W3/2 + x1*s, H3/2 - y1*s, s];        // pixel position on canvas + scale factor
+}
+
+function draw3D(tracks){
+  ctx3.clearRect(0, 0, W3, H3);
+  const rs  = gv('rs'), rsh = gv('rsh');
+  const theta = gv('theta') * Math.PI / 180;
+  const sc3 = Math.min(W3, H3) * 0.38 / Math.max(gv('r0') * 1.1, rsh * 1.4, 8);
+
+  // Draw wireframe sphere for shell R
+  const Nr = 18;
+  ctx3.strokeStyle = 'rgba(3,124,130,0.2)'; ctx3.lineWidth = 0.6;
+  for(let i = 0; i <= Nr; i++){
+    const lat = -Math.PI/2 + Math.PI * i / Nr;
+    ctx3.beginPath();
+    let f2 = true;
+    for(let j = 0; j <= Nr*2; j++){
+      const lng = 2*Math.PI * j / (Nr*2);
+      const x3 = rsh * sc3 * Math.cos(lat) * Math.cos(lng);
+      const y3 = rsh * sc3 * Math.sin(lat);
+      const z3 = rsh * sc3 * Math.cos(lat) * Math.sin(lng);
+      const [px, py] = project3D(x3, y3, z3);
+      f2 ? ctx3.moveTo(px, py) : ctx3.lineTo(px, py);
+      f2 = false;
+    }
+    ctx3.stroke();
+  }
+  for(let j = 0; j < Nr*2; j++){
+    const lng = 2*Math.PI * j / (Nr*2);
+    ctx3.beginPath();
+    let f2 = true;
+    for(let i = 0; i <= Nr; i++){
+      const lat = -Math.PI/2 + Math.PI * i / Nr;
+      const x3 = rsh * sc3 * Math.cos(lat) * Math.cos(lng);
+      const y3 = rsh * sc3 * Math.sin(lat);
+      const z3 = rsh * sc3 * Math.cos(lat) * Math.sin(lng);
+      const [px, py] = project3D(x3, y3, z3);
+      f2 ? ctx3.moveTo(px, py) : ctx3.lineTo(px, py);
+      f2 = false;
+    }
+    ctx3.stroke();
+  }
+
+  // Schwarzschild sphere
+  ctx3.fillStyle = 'rgba(194,25,84,0.6)';
+  const [p0x, p0y, p0s] = project3D(0, 0, 0);
+  ctx3.beginPath(); ctx3.arc(p0x, p0y, rs * sc3 * p0s, 0, 2*Math.PI); ctx3.fill();
+
+  // Tracks — lift equatorial orbit by inclination theta
+  tracks.forEach(t => {
+    const pts = t.res.pts;
+    if(pts.length < 2) return;
+    ctx3.beginPath();
+    let first3 = true;
+    pts.forEach(([x2d, y2d]) => {
+      // 2D equatorial: x = r cos φ, y = r sin φ, z=0
+      // Lift by inclination theta around x-axis
+      const xr = x2d * sc3;
+      const yr = y2d * sc3 * Math.cos(theta);
+      const zr = y2d * sc3 * Math.sin(theta);
+      const [px, py] = project3D(xr, yr, zr);
+      first3 ? ctx3.moveTo(px, py) : ctx3.lineTo(px, py);
+      first3 = false;
+    });
+    if(t.isNull) ctx3.setLineDash([5, 3]);
+    ctx3.strokeStyle = t.col; ctx3.lineWidth = 1.5; ctx3.stroke(); ctx3.setLineDash([]);
+  });
+
+  // Axis labels
+  ctx3.fillStyle = 'rgba(3,124,130,0.5)'; ctx3.font = '9px "Exo 2",sans-serif';
+  ctx3.fillText('drag to rotate · scroll to zoom', 8, H3 - 8);
+}
+
+//  LIVE CONSTANTS
+
+function updateLive(){
+  // Guard: elements may not exist yet at DOMContentLoaded
+  const rsEl = document.getElementById('rs');
+  if(!rsEl) return;
+  const rs = gv('rs'), rsh = gv('rsh'), b = gv('b'), E = gv('E');
+  const L = gv('L'), r0 = gv('r0'), mfrac = gv('mfrac'), mshell = gv('mshell');
+  const it = gs('interior');
+  // b_crit = (3√3/2)·r_s — critical impact parameter; derived from maximum of V_null at photon sphere
+  // ISCO = 3·r_s — innermost stable circular orbit
+  const bc = 1.5 * Math.sqrt(3) * rs, isco = 3 * rs;
+  // V_eff(r₀) — effective potential value at the starting position
+  const Ve = vtm(r0, rs, L, rsh, mfrac, mshell, it);
+  // Motion condition: E²/2 > V_eff → positive radial kinetic energy → motion allowed
+  const E2h = E * E * .5, ok = E2h > Ve;
+  // Escape speed v = √(r_s/r) (geometric units, c=G=1)
+  const vesc = Math.sqrt(rs / r0);
+  // Angular momentum at ISCO: L_ISCO = 2√3·r_s (minimum L for a stable circular orbit)
+  const L_isco = 2 * Math.sqrt(3) * rs;
+  document.getElementById('livebox').innerHTML =
+    `<b>r_s</b> = ${rs.toFixed(2)} &nbsp;|&nbsp; <b>ISCO</b> = ${isco.toFixed(2)} &nbsp;|&nbsp; <b>ph. sphere</b> = ${(1.5*rs).toFixed(2)}<br>` +
+    `<b>b_crit</b> = ${bc.toFixed(3)} — photons with b &lt; ${bc.toFixed(2)} captured<br>` +
+    `<b>V_eff(r₀)</b> = ${Ve.toFixed(4)} &nbsp;|&nbsp; <b>E²/2</b> = ${E2h.toFixed(4)} &nbsp;|&nbsp; ` +
+    `<b>E²−2V</b> = ${(E*E - 2*Ve).toFixed(4)} <span class="${ok?'tag-ok':'tag-err'}">${ok ? '→ allowed' : '→ forbidden'}</span><br>` +
+    `<b>v_esc(r₀)</b> = ${vesc.toFixed(4)} &nbsp;|&nbsp; <b>L_ISCO</b> = ${L_isco.toFixed(3)} &nbsp;|&nbsp; <b>M_in/M</b> = ${mfrac.toFixed(2)} &nbsp;|&nbsp; <b>M_shell/M</b> = ${mshell.toFixed(2)}`;
+
+  // Update tick note
+  const showTicks = gs('showticks') === '1';
+  const tickNote = document.getElementById('ptick-note');
+  if(tickNote) tickNote.textContent = showTicks ? `Δτ ticks every ${gv('tickdt').toFixed(1)} units` : '';
+}
+
+//  TABLE
+// ──────────────────────────────────────────────────────────────
+function buildTable(tracks, rs){
+  const tb = document.getElementById('tblbody');
+  tb.innerHTML = '';
+  tracks.forEach(t => {
+    const r = t.res;
+    const dil = r.tau_total > 0.01 ? (r.t_total / r.tau_total).toFixed(3) : '—';
+    const st  = r.captured ? '<span style="color:var(--magenta2)">captured</span>'
+              : r.escaped  ? '<span style="color:var(--tag-ok,#1aaf82)">escaped</span>'
+              : 'orbit';
+    const rmax_str = r.rmax > 65 ? '<span style="color:var(--text3)">unbound</span>' : r.rmax.toFixed(2);
+    const vesc = Math.sqrt(rs / Math.max(r.rmin, 0.01)).toFixed(3);
+    const tr2 = document.createElement('tr');
+    tr2.innerHTML =
+      `<td><span class="track-dot" style="background:${t.col}"></span>${t.label}</td>` +
+      `<td>${t.isNull ? '—' : t.L.toFixed(2)}</td>` +
+      `<td>${r.rmin.toFixed(3)}</td>` +
+      `<td>${rmax_str}</td>` +
+      `<td>${r.alpha.toFixed(1)}°</td>` +
+      `<td>${r.t_total.toFixed(2)}</td>` +
+      `<td>${r.tau_total.toFixed(2)}</td>` +
+      `<td>${dil}</td>` +
+      `<td>${vesc}</td>` +
+      `<td>${st}</td>`;
+    tb.appendChild(tr2);
+  });
+}
+
+//  EXPORT
+
+function exportCSV(){
+  if(!lastTracks.length){ alert('Run the simulation first.'); return; }
+  const lines = ['track,step,tau,t,r,phi_rad,x,y,pr,v_esc_local'];
+  lastTracks.forEach(t => {
+    const rs = gv('rs');
+    t.res.pts.forEach(([x, y], i) => {
+      const r = Math.sqrt(x*x + y*y), phi = Math.atan2(y, x);
+      const pr = i > 0
+        ? (r - Math.sqrt(t.res.pts[i-1][0]**2 + t.res.pts[i-1][1]**2)) /
+          ((t.res.taus[i]||0) - (t.res.taus[i-1]||0) || 1)
+        : 0;
+      const vesc_loc = Math.sqrt(rs / Math.max(r, 0.01)).toFixed(6);
+      lines.push(`${t.label},${i},${(t.res.taus[i]||0).toFixed(5)},${(t.res.ts[i]||0).toFixed(5)},${r.toFixed(6)},${phi.toFixed(6)},${x.toFixed(6)},${y.toFixed(6)},${pr.toFixed(6)},${vesc_loc}`);
+    });
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], {type:'text/csv'}));
+  a.download = 'geodesics.csv'; a.click();
+}
+
+function exportJSON(){
+  if(!lastTracks.length){ alert('Run the simulation first.'); return; }
+  const rs = gv('rs'), rsh = gv('rsh');
+  const out = {
+    version:'02.01',
+    parameters:{ rs, rsh, mshell:gv('mshell'), mfrac:gv('mfrac'), E:gv('E'), L:gv('L'),
+      b:gv('b'), r0:gv('r0'), phi0:gv('phi0'), theta:gv('theta'), dt:gv('dt'), nsteps:gv('nsteps') },
+    tracks: lastTracks.map(t => ({
+      label: t.label, L: t.L, color: t.col, isNull: t.isNull,
+      result: { captured:t.res.captured, escaped:t.res.escaped, rmin:t.res.rmin, rmax:t.res.rmax,
+        alpha:t.res.alpha, tau_total:t.res.tau_total, t_total:t.res.t_total, maxDE:t.res.maxDE },
+      points: t.res.pts.map(([x,y],i) => ({x,y,tau:t.res.taus[i]||0,t:t.res.ts[i]||0}))
+    }))
+  };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], {type:'application/json'}));
+  a.download = 'geodesics.json'; a.click();
+}
+
+//  SIMULATE
+
+function simulate(doAnim){
+  if(animId) cancelAnimationFrame(animId);
+  animOn = false;
+  document.getElementById('abtn').textContent = '◌ Animate';
+
+  const rs     = gv('rs'),   rsh    = gv('rsh'),  E      = gv('E');
+  const L      = gv('L'),    b      = gv('b'),    r0     = gv('r0');
+  const phi0   = gv('phi0'), dt     = gv('dt'),   nsteps = gv('nsteps');
+  const nt     = gv('ntracks'), dL  = gv('dL'),   mfrac  = gv('mfrac');
+  const mshell = gv('mshell');
+  const nphot  = gv('nphot'), dbphot = gv('dbphot');
+  const it     = gs('interior'), rsign = gs('rsign'), nsign = gs('nsign');
+  const shn    = gs('shownull') === '1';
+  const showTicks = gs('showticks') === '1';
+  const tickDt = gv('tickdt');
+
+  const infoEl = document.getElementById('info');
+  if(rs >= rsh){ infoEl.textContent = 'Error: r_s must be smaller than shell radius R'; return; }
+  infoEl.textContent = '';
+
+  const sc = Math.min(W, H) * 0.44 / Math.max(r0 * 1.1, rsh * 1.4, 8);
+  const tracks = [];
+
+  // Timelike tracks
+  for(let i = 0; i < nt; i++){
+    const Li = parseFloat((L + i * dL).toFixed(3));
+    tracks.push({
+      res: integrate(rs, rsh, r0, phi0, E, Li, false, rsign, dt, nsteps, mfrac, mshell, it),
+      L: Li, col: COLS[i % COLS.length], isNull: false, label: `L=${Li.toFixed(2)}`
+    });
+  }
+
+  // Single photon
+  if(shn){
+    tracks.push({
+      res: integrate(rs, rsh, r0, phi0, 1, b, true, nsign, dt, nsteps, mfrac, mshell, it),
+      b, col: CNULL, isNull: true, label: `photon b=${b.toFixed(2)}`
+    });
+  }
+
+  // Lensing bundle
+  if(nphot > 0){
+    for(let k = 0; k < nphot; k++){
+      const bk = b + (k - (nphot-1)/2) * dbphot;
+      if(bk <= 0) continue;
+      tracks.push({
+        res: integrate(rs, rsh, r0, phi0, 1, bk, true, nsign, dt, nsteps, mfrac, mshell, it),
+        b: bk, col: CNULL_BUNDLE[k % CNULL_BUNDLE.length], isNull: true,
+        label: `bundle b=${bk.toFixed(2)}`
+      });
+    }
+  }
+
+  lastTracks = tracks;
+
+  function drawAll(upto){
+    drawBg(rs, rsh, sc);
+    drawTracks(tracks, sc, upto, showTicks, tickDt);
+    drawVeff(tracks, rs, rsh, E, mfrac, mshell, it, upto === undefined ? undefined : upto);
+    draw3D(tracks);
+  }
+
+  if(doAnim){
+    animOn = true;
+    document.getElementById('abtn').textContent = '■ Stop';
+    const mp = Math.max(...tracks.map(t => t.res.pts.length));
+    const spd = Math.max(1, Math.floor(mp / 600));
+    let step = 0;
+    function frame(){
+      if(!animOn) return;
+      drawBg(rs, rsh, sc);
+      drawTracks(tracks, sc, step, showTicks, tickDt);
+      drawVeff(tracks, rs, rsh, E, mfrac, mshell, it, step);
+      draw3D(tracks);
+      step += spd;
+      if(step < mp) animId = requestAnimationFrame(frame);
+      else { animOn = false; document.getElementById('abtn').textContent = '◌ Animate'; }
+    }
+    frame();
+  } else {
+    drawAll();
+  }
+
+  // Legend
+  const leg = document.getElementById('leg');
+  leg.innerHTML = '';
+  tracks.forEach(t => {
+    const d = document.createElement('div'); d.className = 'leg-item';
+    const dot = document.createElement('span'); dot.className = 'leg-dot'; dot.style.background = t.col;
+    const lbl = document.createElement('span'); lbl.className = 'leg-text';
+    lbl.textContent = `${t.label} — ${t.res.captured?'captured':t.res.escaped?'escaped':'orbit/transit'} (${t.res.pts.length} steps)`;
+    d.appendChild(dot); d.appendChild(lbl); leg.appendChild(d);
+  });
+  const mde = Math.max(...tracks.map(t => t.res.maxDE));
+  document.getElementById('econs').textContent = `Energy conservation: max ΔE/E = ${mde.toExponential(2)}`;
+
+  buildTable(tracks, rs);
+  updateLive();
+}
+
+
+//  HELP DIALOGS
+
+function showHelp(k){
+  const msgs = {
+    td: 'Δt/Δτ is the ratio of coordinate time (distant observer) to proper time (on the particle\'s clock). Near r_s the metric factor (1−r_s/r)→0, making coordinate time diverge — the classic gravitational time dilation of GR.',
+    veff: 'The effective potential V_eff(r) encodes radial turning points. Where E²/2 = V_eff, radial velocity ṙ = 0 — these are periapsis and apoapsis. If E²/2 > V_eff everywhere the particle escapes. A local minimum gives a stable circular orbit. The GR term −r_s·L²/r³ deepens the well and removes stable orbits inside ISCO = 3r_s.'
+  };
+  alert(msgs[k]);
+}
+
+// Select elements also trigger updateLive
+['interior','rsign','nsign','shownull','showticks'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('change', updateLive);
+});
+</script>
+</body>
+</html>
